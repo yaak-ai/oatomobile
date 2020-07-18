@@ -2,21 +2,25 @@ import argparse
 
 import gym
 import oatomobile
+import oatomobile.baselines.rulebased
 
 
-def run_rendrer(town, save_path, interactive):
+def run_rendrer(town, save_path=None, interactive=False):
   # Initializes a CARLA environment.
   env = oatomobile.envs.CARLAEnv(town=town)
-  env = gym.wrappers.Monitor(env, save_path)
+  if save_path is not None:
+    env = oatomobile.MonitorWrapper(env, output_fname=save_path)
 
   # Makes an initial observation.
   obs = env.reset()
   done = False
 
+  agent = oatomobile.baselines.rulebased.AutopilotAgent(env)
+
   while not done:
     # Selects a random action.
-    action = env.action_space.sample()
-    observation, reward, done, info = env.step(action)
+    action = agent.act(obs)
+    obs, reward, done, info = env.step(action)
 
     # Renders interactive display.
     if interactive:
