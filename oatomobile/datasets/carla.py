@@ -265,7 +265,8 @@ class CARLADataset(Dataset):
 
       # Always keep `past_length+future_length+1` files open.
       if len(sequence) < past_length + future_length + 1:
-        logging.error("Skipping {}, invalid length", episode_token)
+        logging.error("Skipping {}, invalid length".format(episode_token))
+        continue
 
       for i in tqdm.trange(
           past_length,
