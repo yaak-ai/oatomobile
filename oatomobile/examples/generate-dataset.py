@@ -16,7 +16,7 @@ def generate_dataset(town, num_pedestrians, num_vehicles,
   print('Generating dataset for {}'.format(town))
 
   dataset.collect(town, destination.as_posix(), num_vehicles,
-                  num_pedestrians, num_steps, sensors=defaults.CARLA_SENSORS)
+                  num_pedestrians, num_steps)
 
 
 if __name__ == '__main__':
@@ -24,9 +24,12 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser("Remote render and saving script")
   parser.add_argument('-t', '--town', help='Town type', default=None,
                       choices=defaults.AVAILABLE_CARLA_TOWNS)
-  parser.add_argument('-p', '--pedestrians', help='Town type', default=100)
-  parser.add_argument('-v', '--vehicles', help='Number of vehicles', default=100)
-  parser.add_argument('-s', '--steps', help='Number of simulatiom steps', default=1000)
+  parser.add_argument('-p', '--pedestrians', help='Town type',
+                      type=int, default=100)
+  parser.add_argument('-v', '--vehicles', help='Number of vehicles',
+                      type=int, default=100)
+  parser.add_argument('-s', '--steps', help='Number of simulatiom steps',
+                      type=int, default=1000)
   parser.add_argument('-d', '--destination', help='Save path', type=Path)
 
   args = parser.parse_args()

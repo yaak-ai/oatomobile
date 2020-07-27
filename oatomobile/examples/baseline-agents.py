@@ -52,9 +52,9 @@ if __name__ == '__main__':
   parser.add_argument('-i', '--interactive', action='store_true', default=False,
                       help='Interactive visualization')
   parser.add_argument('-nv', '--num-vehicles', dest='n_vehicles',
-                      help='Number of vehicles', default=100)
+                      help='Number of vehicles', default=100, type=int)
   parser.add_argument('-np', '--num-pedestrians', dest='n_pedestrians',
-                      help='Number of pedestrians', default=100)
+                      help='Number of pedestrians', default=100, type=int)
 
   args = parser.parse_args()
 
