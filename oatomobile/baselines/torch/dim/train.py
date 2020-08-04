@@ -45,6 +45,11 @@ flags.DEFINE_string(
     default=None,
     help="The full path to the output directory (for logs, ckpts).",
 )
+flags.DEFINE_string(
+    name="ckpt_path",
+    default=None,
+    help="The full path to ckpt model (warm start)",
+)
 flags.DEFINE_integer(
     name="batch_size",
     default=512,
@@ -90,6 +95,7 @@ def main(argv):
   # Parses command line arguments.
   dataset_dir = FLAGS.dataset_dir
   output_dir = FLAGS.output_dir
+  ckpt_path = FLAGS.ckpt_path
   batch_size = FLAGS.batch_size
   num_epochs = FLAGS.num_epochs
   learning_rate = FLAGS.learning_rate
@@ -112,6 +118,11 @@ def main(argv):
   # Initializes the model and its optimizer.
   output_shape = [num_timesteps_to_keep, 2]
   model = ImitativeModel(output_shape=output_shape).to(device)
+
+  if ckpt_path is not None:
+    model.load_state_dict(torch.load(ckpt_path))
+    print(f"Loaded weights from {ckpt_path}")
+
   optimizer = optim.Adam(
       model.parameters(),
       lr=learning_rate,
