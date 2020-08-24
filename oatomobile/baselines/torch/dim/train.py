@@ -121,7 +121,7 @@ def main(argv):
 
   if ckpt_path is not None:
     model.load_state_dict(torch.load(ckpt_path))
-    print(f"Loaded weights from {ckpt_path}")
+    print("Loaded weights from {}".format(ckpt_path))
 
   optimizer = optim.Adam(
       model.parameters(),

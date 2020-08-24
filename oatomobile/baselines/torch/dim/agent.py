@@ -73,7 +73,7 @@ class DIMAgent(SetPointAgent):
 
     # TODO(filangel): clean API.
     # Interpolates plan.
-    player_future_length = 40
+    player_future_length = 80
     increments = player_future_length // plan.shape[0]
     time_index = list(range(0, player_future_length, increments))  # [T]
     plan_interp = scipy.interpolate.interp1d(x=time_index, y=plan, axis=0)

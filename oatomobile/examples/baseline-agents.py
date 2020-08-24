@@ -23,8 +23,10 @@ def run_agent(agent, ckpt, town, num_vehicles, num_pedestrians,
   obs = env.reset()
   done = False
 
-  model = ImitativeModel()
+  # model = ImitativeModel()
+  model = ImitativeModel(output_shape=[20, 2])
   model.load_state_dict(torch.load(ckpt))
+  model.eval()
 
   agent = AGENT_LIST[agent](environment=env, model=model)
 

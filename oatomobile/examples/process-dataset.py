@@ -1,8 +1,6 @@
-import random
 import argparse
 from pathlib import Path
 from oatomobile.datasets.carla import CARLADataset
-from oatomobile.simulators.carla import defaults
 
 
 def process_dataset(source, destination):
