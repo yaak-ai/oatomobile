@@ -48,21 +48,26 @@ class AutoregressiveFlow(nn.Module):
         loc=torch.zeros(self._output_shape[-2] * self._output_shape[-1]),  # pylint: disable=no-member
         scale_tril=torch.eye(self._output_shape[-2] * self._output_shape[-1]),  # pylint: disable=no-member
     )
+    flattened_shape = self._output_shape[-2] * self._output_shape[-1]
+    print(f"MultivariateNormal dimension={flattened_shape}")
 
     # The decoder recurrent network used for the sequence generation.
     self._decoder = nn.GRUCell(
         input_size=self._output_shape[-1],
         hidden_size=hidden_size,
     )
+    print(f"GRUCell input_size={self._output_shape[-1]} hidden_size={hidden_size}")
 
-    # The output head.
+    # The output head. Predicts mean (2D) and var (2D) for each timestep
+    #
     self._locscale = MLP(
         input_size=hidden_size,
-        output_sizes=[32, self._output_shape[0]],
+        output_sizes=[32, self._output_shape[-1] * 2],
         activation_fn=nn.ReLU,
         dropout_rate=None,
         activate_final=False,
     )
+    print(f"_locscale input_size={hidden_size} output_sizes={self._output_shape[-1] * 2}")
 
   def to(self, *args, **kwargs):
     """Handles non-parameter tensors when moved to a new device."""
@@ -115,7 +120,8 @@ class AutoregressiveFlow(nn.Module):
     y = list()
     scales = list()
 
-    # Initial input variable.
+    # Initial input variable. We decouple conditinal density
+    # estimation for each time step. [B, D] D = 2 or 3
     y_tm1 = torch.zeros(  # pylint: disable=no-member
         size=(z.shape[0], self._output_shape[-1]),
         dtype=z.dtype,
@@ -124,11 +130,13 @@ class AutoregressiveFlow(nn.Module):
     for t in range(x.shape[-2]):
       x_t = x[:, t, :]
 
-      # Unrolls the GRU.
+      # Unrolls the GRU. Given the context and previous location estimate
+      # next next context
       z = self._decoder(y_tm1, z)
 
       # Predicts the location and scale of the MVN distribution.
       dloc_scale = self._locscale(z)
+      # Treat first two dimensions are mean and next two as scale
       dloc = dloc_scale[..., :2]
       scale = F.softplus(dloc_scale[..., 2:]) + 1e-3
 
@@ -175,7 +183,8 @@ class AutoregressiveFlow(nn.Module):
     x = list()
     scales = list()
 
-    # Initial input variable.
+    # Initial input variable. We decouple conditinal density
+    # estimation for each time step. [B, D] D = 2 or 3
     y_tm1 = torch.zeros(  # pylint: disable=no-member
         size=(z.shape[0], self._output_shape[-1]),
         dtype=z.dtype,
@@ -184,11 +193,13 @@ class AutoregressiveFlow(nn.Module):
     for t in range(y.shape[-2]):
       y_t = y[:, t, :]
 
-      # Unrolls the GRU.
+      # Unrolls the GRU. Given the context and previous location estimate
+      # next next context
       z = self._decoder(y_tm1, z)
 
       # Predicts the location and scale of the MVN distribution.
       dloc_scale = self._locscale(z)
+      # Treat first two dimensions are mean and next two as scale
       dloc = dloc_scale[..., :2]
       scale = F.softplus(dloc_scale[..., 2:]) + 1e-3
 
@@ -204,7 +215,8 @@ class AutoregressiveFlow(nn.Module):
     x = torch.stack(x, dim=-2)  # pylint: disable=no-member
     scales = torch.stack(scales, dim=-2)  # pylint: disable=no-member
 
-    # Log likelihood under base distribution.
+    # Log likelihood under base distribution
+    # after flattening into T * 2 dimensioned vector
     log_prob = self._base_dist.log_prob(x.view(x.shape[0], -1))
 
     # Log absolute determinant of Jacobian.

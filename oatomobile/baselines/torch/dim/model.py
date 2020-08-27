@@ -51,6 +51,7 @@ class ImitativeModel(nn.Module):
 
     # The convolutional encoder model.
     self._encoder = MobileNetV2(num_classes=128, in_channels=2)
+    print("MobileNetV2 output_shape 128, in_shape=2")
 
     # Merges the encoded features and the vector inputs.
     self._merger = MLP(
@@ -60,12 +61,14 @@ class ImitativeModel(nn.Module):
         dropout_rate=None,
         activate_final=True,
     )
+    print("self._merger in_shape=134, output_shape=64")
 
     # The decoder recurrent network used for the sequence generation.
     self._decoder = AutoregressiveFlow(
         output_shape=self._output_shape,
         hidden_size=64,
     )
+    print(f"AutoregressiveFlow hidden_size=64, output_shape={self._output_shape}")
 
   def to(self, *args, **kwargs):
     """Handles non-parameter tensors when moved to a new device."""
