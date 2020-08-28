@@ -240,13 +240,13 @@ class ImitativeModel(nn.Module):
     """Transforms samples from the base distribution to the data distribution.
 
     Args:
-      x: Samples from the base distribution, with shape `[B, D]`.
+      x: Samples from the base distribution, with shape `[B, T, 2]`.
       z: The contextual parameters of the conditional density estimator, with
         shape `[B, K]`.
 
     Returns:
-      y: The sampels from the push-forward distribution,
-        with shape `[B, D]`.
+      y: The samples from the push-forward distribution,
+        with shape `[B, T, 2]`.
       logabsdet: The log absolute determinant of the Jacobian,
         with shape `[B]`.
     """
@@ -268,6 +268,7 @@ class ImitativeModel(nn.Module):
       z = self._decoder(y_tm1, z)
 
       # Predicts the location and scale of the MVN distribution.
+      # 64 -> 4 (mean: 2D, var: 2D)
       dloc_scale = self._locscale(z)
       dloc = dloc_scale[..., :2]
       scale = F.softplus(dloc_scale[..., 2:]) + 1e-3
@@ -298,7 +299,7 @@ class ImitativeModel(nn.Module):
     """Transforms samples from the data distribution to the base distribution.
 
     Args:
-      y: Samples from the data distribution, with shape `[B, D]`.
+      y: Samples from the data distribution, with shape `[B, T, 2]`.
       z: The contextual parameters of the conditional density estimator, with shape
         `[B, K]`.
 
@@ -345,6 +346,7 @@ class ImitativeModel(nn.Module):
     scales = torch.stack(scales, dim=-2)  # pylint: disable=no-member
 
     # Log likelihood under base distribution.
+    # Base distribution expects shape T * 2
     log_prob = self._base_dist.log_prob(x.view(x.shape[0], -1))
 
     # Log absolute determinant of Jacobian.

@@ -206,6 +206,8 @@ def main(argv):
         is_at_traffic_light=batch["is_at_traffic_light"],
         traffic_light_state=batch["traffic_light_state"],
     )
+    # because we wanna go from data distribution to base distribution
+    # where we can optimize p(x)
     _, log_prob, logabsdet = model._inverse(y=y, z=z)
 
     # Calculates loss (NLL).

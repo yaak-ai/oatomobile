@@ -29,7 +29,7 @@ class DIMAgent(SetPointAgent):
   """The deep imitative model agent."""
 
   def __init__(self, environment: oatomobile.envs.CARLAEnv, *,
-               model: ImitativeModel, **kwargs) -> None:
+               model: ImitativeModel, length: int, **kwargs) -> None:
     """Constructs a deep imitation model agent.
 
     Args:
@@ -41,6 +41,7 @@ class DIMAgent(SetPointAgent):
     # Determines device, accelerator.
     self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # pylint: disable=no-member
     self._model = model.to(self._device)
+    self._length = length
 
   def __call__(self, observation: Mapping[str, np.ndarray],
                **kwargs) -> np.ndarray:
@@ -73,9 +74,8 @@ class DIMAgent(SetPointAgent):
 
     # TODO(filangel): clean API.
     # Interpolates plan.
-    player_future_length = 80
-    increments = player_future_length // plan.shape[0]
-    time_index = list(range(0, player_future_length, increments))  # [T]
+    increments = self._length // plan.shape[0]
+    time_index = list(range(0, self._length, increments))  # [T]
     plan_interp = scipy.interpolate.interp1d(x=time_index, y=plan, axis=0)
     xy = plan_interp(np.arange(0, time_index[-1]))
 
