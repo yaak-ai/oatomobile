@@ -49,14 +49,14 @@ class AutoregressiveFlow(nn.Module):
         scale_tril=torch.eye(self._output_shape[-2] * self._output_shape[-1]),  # pylint: disable=no-member
     )
     flattened_shape = self._output_shape[-2] * self._output_shape[-1]
-    print(f"MultivariateNormal dimension={flattened_shape}")
+    print("MultivariateNormal dimension={}".format(flattened_shape))
 
     # The decoder recurrent network used for the sequence generation.
     self._decoder = nn.GRUCell(
         input_size=self._output_shape[-1],
         hidden_size=hidden_size,
     )
-    print(f"GRUCell input_size={self._output_shape[-1]} hidden_size={hidden_size}")
+    print("GRUCell input_size={} hidden_size={}".format(self._output_shape[-1], hidden_size))
 
     # The output head. Predicts mean (2D) and var (2D) for each timestep
     #
@@ -67,7 +67,7 @@ class AutoregressiveFlow(nn.Module):
         dropout_rate=None,
         activate_final=False,
     )
-    print(f"_locscale input_size={hidden_size} output_sizes={self._output_shape[-1] * 2}")
+    print("_locscale input_size={} output_sizes={}".format(hidden_size, self._output_shape[-1] * 2))
 
   def to(self, *args, **kwargs):
     """Handles non-parameter tensors when moved to a new device."""

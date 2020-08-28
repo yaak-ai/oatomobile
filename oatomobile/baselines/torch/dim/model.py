@@ -68,7 +68,7 @@ class ImitativeModel(nn.Module):
         output_shape=self._output_shape,
         hidden_size=64,
     )
-    print(f"AutoregressiveFlow hidden_size=64, output_shape={self._output_shape}")
+    print("AutoregressiveFlow hidden_size=64, output_shape={}".format(self._output_shape))
 
   def to(self, *args, **kwargs):
     """Handles non-parameter tensors when moved to a new device."""
