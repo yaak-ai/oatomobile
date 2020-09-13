@@ -12,18 +12,19 @@ AGENT_LIST = {'dim': DIMAgent, 'rip': RIPAgent, 'cil': CILAgent}
 
 
 def run_agent(agent, ckpts, algorithm, town, num_vehicles, num_pedestrians,
-              save_path=None, interactive=False):
+              output_dir=None, interactive=False, spawn_point=None):
 
   # Initializes a CARLA environment.
   env = oatomobile.envs.CARLAEnv(town=town, num_vehicles=num_vehicles,
-                                 num_pedestrians=num_pedestrians)
-  if save_path is not None:
-    env = oatomobile.MonitorWrapper(env, output_fname=save_path)
+                                 num_pedestrians=num_pedestrians, spawn_point=spawn_point,)
+
+  if output_dir is not None:
+    env = oatomobile.SaveToDiskWrapper(env, output_dir=output_dir)
+    env = oatomobile.MonitorWrapper(env, output_fname=output_dir+'/video.mp4')
 
   # Makes an initial observation.
   obs = env.reset()
   done = False
-  
 
   if agent=='cil':
     model = BehaviouralModel()
@@ -34,7 +35,6 @@ def run_agent(agent, ckpts, algorithm, town, num_vehicles, num_pedestrians,
   for model, ckpt in zip(models, ckpts):
     model.load_state_dict(torch.load(ckpt))
     model.eval()
-
   if agent=='rip':
     agent = AGENT_LIST[agent](
         environment=env,
@@ -42,7 +42,6 @@ def run_agent(agent, ckpts, algorithm, town, num_vehicles, num_pedestrians,
         algorithm=algorithm,)
   else:
     agent = AGENT_LIST[agent](environment=env, model=models[0])
-
 
   while not done:
     # Selects a random action.
@@ -66,7 +65,7 @@ if __name__ == '__main__':
                       help='Model weights files. Example: -w model1 model2')
   parser.add_argument('-g', '--algorithm', help='RIP varient algorihtm',
                       choices=['WCM', 'MA', 'BCM'], default='MA')
-  parser.add_argument('-v', '--vid', help='Path where to save the videos')
+  parser.add_argument('-o', '--output_dir', help='The full path to the output directory')
   parser.add_argument('-t', '--town', help='Town Name')
   parser.add_argument('-i', '--interactive', action='store_true', default=False,
                       help='Interactive visualization')
@@ -74,9 +73,9 @@ if __name__ == '__main__':
                       help='Number of vehicles', default=100, type=int)
   parser.add_argument('-np', '--num-pedestrians', dest='n_pedestrians',
                       help='Number of pedestrians', default=100, type=int)
+  parser.add_argument('-s', '--spawn_point', dest='spawn_point',
+                      help='The spawn point of the hero vehicle', default=None, type=int)
 
   args = parser.parse_args()
   run_agent(args.agent, args.weights, args.algorithm, args.town, args.n_vehicles,
-            args.n_pedestrians, args.vid, args.interactive)
-
-
+            args.n_pedestrians, args.output_dir, args.interactive, args.spawn_point )
