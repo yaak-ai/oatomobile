@@ -87,15 +87,17 @@ def main(argv):
         town=town,
         fps=20,
         sensors=sensors,
+        spawn_point=0,
     )
     if max_episode_steps is not None:
       env = oatomobile.FiniteHorizonWrapper(
           env,
           max_episode_steps=max_episode_steps,
+          spawn_point=0, destination=1,
       )
     if output_dir is not None:
       env = oatomobile.SaveToDiskWrapper(env, output_dir=output_dir)
-    env = oatomobile.MonitorWrapper(env, output_fname="tmp/yoo.gif")
+      env = oatomobile.MonitorWrapper(env, output_fname=output_dir+"/video.mp4")
 
     # Runs the environment loop.
     oatomobile.EnvironmentLoop(
