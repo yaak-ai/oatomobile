@@ -186,3 +186,18 @@ TARGET_SPEED = 20.0
 
 # The number of simulator steps before termination.
 MAX_EPISODE_STEPS = int(1e4)
+
+# Default PID controllers configuration.
+SIMULATOR_FPS = 20
+LATERAL_PID_CONTROLLER_CONFIG = {
+    'K_P': 1.95,
+    'K_D': 0.01,
+    'K_I': 1.4,
+    'dt': 1.0 / SIMULATOR_FPS,
+}
+LONGITUDINAL_PID_CONTROLLER_CONFIG = {
+    'K_P': 1.0,
+    'K_D': 0,
+    'K_I': 1.0,
+    'dt': 1.0 / SIMULATOR_FPS,
+}
