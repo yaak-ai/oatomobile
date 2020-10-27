@@ -93,7 +93,6 @@ def main(argv):
       env = oatomobile.FiniteHorizonWrapper(
           env,
           max_episode_steps=max_episode_steps,
-          spawn_point=0, destination=1,
       )
     if output_dir is not None:
       env = oatomobile.SaveToDiskWrapper(env, output_dir=output_dir)
