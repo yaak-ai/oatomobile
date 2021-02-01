@@ -66,7 +66,7 @@ action = agent.act(observation)
 
 ## Installation
 
-We have tested OATomobile on Python 3.7.
+We have tested OATomobile on Python 3.7
 
 ### Carla
 
@@ -94,7 +94,7 @@ We have tested OATomobile on Python 3.7.
     git checkout 0.9.11
     # Follow dependencies https://carla.readthedocs.io/en/latest/build_linux/#dependencies
     make PythonAPI
-    easy_install PythonAPI/carla/dist/carla-0.9.11-py3.8-linux-x86_64.egg
+    easy_install PythonAPI/carla/dist/carla-0.9.11-py3.7-linux-x86_64.egg
     ```
 
 ### OATomobile
