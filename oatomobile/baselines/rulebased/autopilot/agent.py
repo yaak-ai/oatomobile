@@ -26,6 +26,7 @@ import carla
 import oatomobile
 import oatomobile.envs
 from oatomobile.simulators.carla import defaults
+import oatomobile.baselines.base as base
 from oatomobile.utils import carla as cutil
 
 try:
@@ -89,7 +90,7 @@ class AutopilotAgent(oatomobile.Agent):
 
         # Local planner, including the PID controllers.
         dt = self._vehicle.get_world().get_settings().fixed_delta_seconds
-        lateral_control_dict = defaults.LATERAL_PID_CONTROLLER_CONFIG.copy()
+        lateral_control_dict = base.LATERAL_PID_CONTROLLER_CONFIG.copy()
         lateral_control_dict.update({"dt": dt})
         # TODO(filangel): tune the parameters for FPS != 20
         self._local_planner = LocalPlanner(
