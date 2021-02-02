@@ -1677,7 +1677,7 @@ class CARLASimulator(simulator.Simulator):
         self._hero = cutil.spawn_hero(
             world=self._world,
             spawn_point=self.spawn_point,
-            vehicle_id="vehicle.ford.mustang",
+            vehicle_id="vehicle.tesla.cybertruck",
         )
         # Initializes the other vehicles.
         self._vehicles = cutil.spawn_vehicles(

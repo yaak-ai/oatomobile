@@ -79,8 +79,8 @@ def setup(
             )
         )
 
-        # Random assignment of port.
-        port = np.random.randint(2000, 3000)
+        # TODO : Pass as arg
+        port = 2000
 
         # Connect client. Should be running in the Docker
         logging.debug("Connects a CARLA client at port={}".format(port))
