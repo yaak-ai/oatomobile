@@ -35,7 +35,7 @@ FRONT_CAMERA_RGB_SENSOR_CONFIG = {
         },
         "rotation": {
             "pitch": 0,
-        }
+        },
     },
 }
 # The rear RGB camera configuration.
@@ -54,7 +54,7 @@ REAR_CAMERA_RGB_SENSOR_CONFIG = {
         "rotation": {
             "pitch": 0,
             "yaw": 180,
-        }
+        },
     },
 }
 # The left RGB camera configuration.
@@ -73,7 +73,7 @@ LEFT_CAMERA_RGB_SENSOR_CONFIG = {
         "rotation": {
             "pitch": 0,
             "yaw": 270,
-        }
+        },
     },
 }
 # The right RGB camera configuration.
@@ -92,7 +92,7 @@ RIGHT_CAMERA_RGB_SENSOR_CONFIG = {
         "rotation": {
             "pitch": 0,
             "yaw": 90,
-        }
+        },
     },
 }
 
@@ -111,11 +111,12 @@ BIRD_VIEW_CAMERA_RGB_SENSOR_CONFIG = {
         },
         "rotation": {
             "pitch": 270,
-        }
+        },
     },
 }
 BIRD_VIEW_CAMERA_CITYSCAPES_SENSOR_CONFIG = copy.deepcopy(
-    BIRD_VIEW_CAMERA_RGB_SENSOR_CONFIG)
+    BIRD_VIEW_CAMERA_RGB_SENSOR_CONFIG
+)
 
 # The LIDAR configuration.
 LIDAR_SENSOR_CONFIG = {
@@ -179,6 +180,11 @@ AVAILABLE_CARLA_TOWNS = (
     "Town03",
     "Town04",
     "Town05",
+    "Town06",
+    "Town07",
+    "Town08",
+    "Town09",
+    "Town10",
 )
 
 # Speed configuration of autopilot.

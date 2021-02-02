@@ -198,7 +198,7 @@ def carla_lidar_measurement_to_ndarray(
 
     # Serialise and parse to `NumPy` tensor.
     points = np.frombuffer(lidar_measurement.raw_data, dtype=np.dtype("f4"))
-    points = np.reshape(points, (int(points.shape[0] / 3), 3))
+    points = np.reshape(points, (len(lidar_measurement), 4))
 
     # Split observations in the Z dimension (height).
     below = points[points[..., 2] <= -2.5]

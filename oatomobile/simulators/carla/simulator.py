@@ -1664,7 +1664,7 @@ class CARLASimulator(simulator.Simulator):
         Returns:
           The initial observations.
         """
-        # CARLA setup.
+        # CARLA setup. Docker should already be running
         self._client, self._world, self._frame = cutil.setup(
             town=self._town,
             fps=self._fps,
