@@ -40,6 +40,11 @@ flags.DEFINE_enum(
         "Town03",
         "Town04",
         "Town05",
+        "Town06",
+        "Town07",
+        "Town08",
+        "Town09",
+        "Town10",
     ],
     help="The CARLA town id.",
 )
@@ -73,51 +78,51 @@ flags.DEFINE_bool(
 
 
 def main(argv):
-  # Debugging purposes.
-  logging.debug(argv)
-  logging.debug(FLAGS)
+    # Debugging purposes.
+    logging.debug(argv)
+    logging.debug(FLAGS)
 
-  # Parses command line arguments.
-  town = FLAGS.town
-  sensors = FLAGS.sensors
-  max_episode_steps = FLAGS.max_episode_steps
-  output_dir = FLAGS.output_dir
-  render = FLAGS.render
+    # Parses command line arguments.
+    town = FLAGS.town
+    sensors = FLAGS.sensors
+    max_episode_steps = FLAGS.max_episode_steps
+    output_dir = FLAGS.output_dir
+    render = FLAGS.render
 
-  try:
-    # Setups the environment.
-    env = oatomobile.envs.CARLANavEnv(
-        town=town,
-        origin=0,
-        destination=25,
-        fps=20,
-        sensors=sensors,
-    )
-    if max_episode_steps is not None:
-      env = oatomobile.FiniteHorizonWrapper(
-          env,
-          max_episode_steps=max_episode_steps,
-      )
-    if output_dir is not None:
-      env = oatomobile.SaveToDiskWrapper(env, output_dir=output_dir)
-
-    # Runs the environment loop.
-    oatomobile.EnvironmentLoop(
-        agent_fn=functools.partial(BlindAgent, setpoint_index=2),
-        environment=env,
-        render_mode="human" if render else "none",
-    ).run()
-
-  except Exception as msg:
-    logging.error(msg)
-
-  finally:
-    # Garbage collector.
     try:
-      env.close()
-    except NameError:
-      pass
+        # Setups the environment.
+        env = oatomobile.envs.CARLANavEnv(
+            town=town,
+            origin=0,
+            destination=25,
+            fps=20,
+            sensors=sensors,
+        )
+        if max_episode_steps is not None:
+            env = oatomobile.FiniteHorizonWrapper(
+                env,
+                max_episode_steps=max_episode_steps,
+            )
+        if output_dir is not None:
+            env = oatomobile.SaveToDiskWrapper(env, output_dir=output_dir)
+
+        # Runs the environment loop.
+        oatomobile.EnvironmentLoop(
+            agent_fn=functools.partial(BlindAgent, setpoint_index=2),
+            environment=env,
+            render_mode="human" if render else "none",
+        ).run()
+
+    except Exception as msg:
+        logging.error(msg)
+
+    finally:
+        # Garbage collector.
+        try:
+            env.close()
+        except NameError:
+            pass
 
 
 if __name__ == "__main__":
-  app.run(main)
+    app.run(main)

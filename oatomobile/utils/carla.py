@@ -67,7 +67,18 @@ def setup(
       frame: The synchronous simulation time step ID.
       server: The `CARLA` server.
     """
-    assert town in ("Town01", "Town02", "Town03", "Town04", "Town05")
+    assert town in (
+        "Town01",
+        "Town02",
+        "Town03",
+        "Town04",
+        "Town05",
+        "Town06",
+        "Town07",
+        "Town08",
+        "Town09",
+        "Town10",
+    )
 
     # The attempts counter.
     attempts = 0
