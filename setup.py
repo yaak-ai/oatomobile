@@ -49,8 +49,8 @@ setup(
     install_requires=[
         "absl-py==0.9.0",
         "gym==0.17.1",
-        "pygame==1.9.6",
-        "matplotlib==3.0.3",
+        "pygame==2.0.1",
+        "matplotlib==3.3.4",
         "seaborn==0.9.1",
         "pandas==0.25.3",
         "scipy==1.4.1",
