@@ -107,7 +107,7 @@ cd /opt/carla-simulator
 # For getting Town06, Town07, Town10HD
 ./ImportAssets.sh
 # Start Sever
-. ./CarlaUE4.sh
+SDL_VIDEODRIVER=offscreen SDL_HINT_CUDA_DEVICE=0 ./CarlaUE4.sh -opengl
 # Install python API
 easy_install PythonAPI/carla/dist/carla-0.9.11-py3.7-linux-x86_64.egg
 ```

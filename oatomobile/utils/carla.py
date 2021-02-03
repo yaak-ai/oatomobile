@@ -77,7 +77,7 @@ def setup(
         "Town07",
         "Town08",
         "Town09",
-        "Town10",
+        "Town10HD",
     )
 
     # The attempts counter.

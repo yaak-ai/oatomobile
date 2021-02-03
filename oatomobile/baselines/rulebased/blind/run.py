@@ -44,7 +44,7 @@ flags.DEFINE_enum(
         "Town07",
         "Town08",
         "Town09",
-        "Town10",
+        "Town10HD",
     ],
     help="The CARLA town id.",
 )
