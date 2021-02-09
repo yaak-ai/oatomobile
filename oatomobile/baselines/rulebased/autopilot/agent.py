@@ -208,6 +208,7 @@ class AutopilotAgent(oatomobile.Agent):
           vehicle: The blocker vehicle itself.
         """
 
+        ego_vehicle_transform = self._vehicle.get_transform()
         ego_vehicle_location = self._vehicle.get_location()
         ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
 
@@ -226,11 +227,10 @@ class AutopilotAgent(oatomobile.Agent):
             ):
                 continue
 
-            loc = target_vehicle.get_location()
+            transform = target_vehicle.get_transform()
             if is_within_distance_ahead(
-                loc,
-                ego_vehicle_location,
-                self._vehicle.get_transform().rotation.yaw,
+                transform,
+                ego_vehicle_transform,
                 self._proximity_vehicle_threshold,
             ):
                 return (True, target_vehicle)
@@ -257,6 +257,7 @@ class AutopilotAgent(oatomobile.Agent):
 
     def _is_light_red_europe_style(self, lights_list):
         """This method is specialized to check European style traffic lights."""
+        ego_vehicle_transform = self._vehicle.get_transform()
         ego_vehicle_location = self._vehicle.get_location()
         ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
 
@@ -268,11 +269,10 @@ class AutopilotAgent(oatomobile.Agent):
             ):
                 continue
 
-            loc = traffic_light.get_location()
+            transform = traffic_light.get_transform()
             if is_within_distance_ahead(
-                loc,
-                ego_vehicle_location,
-                self._vehicle.get_transform().rotation.yaw,
+                transform,
+                ego_vehicle_transform,
                 self._proximity_tlight_threshold,
             ):
                 if (

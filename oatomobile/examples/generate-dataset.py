@@ -14,13 +14,26 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
 
     print("Generating dataset for {}".format(town))
 
+    SENSORS = [
+        "lidar",
+        # "front_camera_rgb",
+        "control",
+        "velocity",
+        "acceleration",
+        "collision",
+        "lane_invasion",
+        "red_light_invasion",
+        "is_at_traffic_light",
+        "traffic_light_state",
+    ]
+
     dataset.collect(
         town,
         destination.as_posix(),
         num_vehicles,
         num_pedestrians,
         num_steps,
-        sensors=defaults.CARLA_SENSORS,
+        sensors=SENSORS,
     )
 
 
