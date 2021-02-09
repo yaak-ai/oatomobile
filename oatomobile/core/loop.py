@@ -68,49 +68,52 @@ class EnvironmentLoop:
           format.
         """
 
-        try:
-            # Initializes environment.
-            done = False
-            observation = self._environment.reset()
+        # try:
+        # Initializes environment.
+        done = False
+        observation = self._environment.reset()
+        if self._render_mode is not "none":
+            self._environment.render(mode=self._render_mode)
+        # Initializes agent.
+        agent = self._agent_fn(environment=self._environment)
+
+        # Episode loop.
+        while not done:
+            # Get vehicle control.
+            action = agent.act(observation)
+
+            # Progresses the simulation.
+            new_observation, reward, done, _ = self._environment.step(action)
             if self._render_mode is not "none":
                 self._environment.render(mode=self._render_mode)
-            # Initializes agent.
-            agent = self._agent_fn(environment=self._environment)
 
-            # Episode loop.
-            while not done:
-                # Get vehicle control.
-                action = agent.act(observation)
+            # Updates the agent belief.
+            agent.update(observation, action, new_observation)
 
-                # Progresses the simulation.
-                new_observation, reward, done, _ = self._environment.step(action)
-                if self._render_mode is not "none":
-                    self._environment.render(mode=self._render_mode)
-
-                # Updates the agent belief.
-                agent.update(observation, action, new_observation)
-
-                # Update metrics.
-                if self._metrics is not None:
-                    for metric in self._metrics:
-                        metric.update(observation, action, reward, new_observation)
-
-                # Book-keeping.
-                observation = new_observation
-
-        except Exception as msg:
-            logging.error(msg)
-            traceback.print_exec()
-
-        finally:
-            # Garbage collector.
-            try:
-                environment.close()
-            except NameError:
-                pass
-
-            # Returns the recorded metrics.
+            # Update metrics.
             if self._metrics is not None:
-                return {metric.uuid: metric.value for metric in self._metrics}
-            else:
-                return None
+                for metric in self._metrics:
+                    metric.update(observation, action, reward, new_observation)
+
+            # Book-keeping.
+            observation = new_observation
+
+        # except Exception as msg:
+        #     import pdb
+        #
+        #     pdb.set_trace()
+        #     logging.error(msg)
+        #     traceback.print_exec()
+
+        # finally:
+        #     # Garbage collector.
+        #     try:
+        #         environment.close()
+        #     except NameError:
+        #         pass
+        #
+        #     # Returns the recorded metrics.
+        #     if self._metrics is not None:
+        #         return {metric.uuid: metric.value for metric in self._metrics}
+        #     else:
+        #         return None

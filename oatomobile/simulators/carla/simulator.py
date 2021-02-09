@@ -40,6 +40,8 @@ from oatomobile.simulators.carla import defaults
 from oatomobile.utils import carla as cutil
 from oatomobile.utils import graphics as gutil
 
+from agents.tools.misc import get_speed
+
 # All agents are expected to return the same action type.
 CARLAAction = carla.VehicleControl  # pylint: disable=no-member
 
@@ -1402,7 +1404,18 @@ class RedLightInvasion(simulator.Sensor):
         if not self._hero.is_at_traffic_light():
             return 0
 
-        raise NotImplementedError
+        traffic_light_state = self._hero.get_traffic_light_state()
+
+        is_green = traffic_light_state == carla.TrafficLightState.Green
+        if is_green:
+            return 0
+
+        is_red = traffic_light_state == carla.TrafficLightState.Red
+        hero_speed = get_speed(self._hero)
+
+        # If speed > 5 kph
+        if is_red and hero_speed > 5:
+            return 1
 
     def close(self) -> None:
         """Dummy call, to satisfy interface."""
