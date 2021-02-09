@@ -16,7 +16,7 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
 
     SENSORS = [
         "lidar",
-        # "front_camera_rgb",
+        "front_camera_rgb",
         "control",
         "velocity",
         "acceleration",
