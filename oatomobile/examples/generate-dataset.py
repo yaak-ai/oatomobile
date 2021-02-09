@@ -25,6 +25,7 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
         "red_light_invasion",
         "is_at_traffic_light",
         "traffic_light_state",
+        "actors_tracker",
     ]
 
     dataset.collect(
