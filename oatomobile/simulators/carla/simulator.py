@@ -1101,12 +1101,12 @@ class RSSSafetySensor(simulator.Sensor):
     def __init__(
         self, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
     ) -> None:
+
         """Constructs an rss invasion sensor."""
         super().__init__(*args, **kwargs)
-        self.sensor = self._spawn_sensor(hero)
         self.queue = queue.Queue()
+        self.sensor = self._spawn_sensor(hero)
         self.sensor.listen(self.queue.put)
-        self.sensor.road_boundaries_mode = carla.RssRoadBoundariesMode.On
         self.sensor.reset_routing_targets()
 
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
@@ -1147,14 +1147,18 @@ class RSSSafetySensor(simulator.Sensor):
             0: safe.
             1: un-safe.
         """
-        import pdb
 
-        pdb.set_trace()
+        from carla import ad
+
         try:
             for event in self.queue.queue:
-                # Confirms synced frames.
-                if event.frame == frame:
-                    return 1
+                if event.response_valid:
+                    return np.any(
+                        [
+                            ad.rss.state.isDangerous(rss_state)
+                            for rss_state in event.rss_state_snapshot.individualResponses
+                        ]
+                    )
             # Default return value.
             return 0
         except queue.Empty:
