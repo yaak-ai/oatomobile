@@ -458,6 +458,31 @@ def spawn_lane_invasion(
     )
 
 
+def spawn_rss(
+    hero: carla.ActorBlueprint,  # pylint: disable=no-member
+) -> carla.ServerSideSensor:  # pylint: disable=no-member
+    """Spawns RSS on `hero`.
+
+    Args:
+      hero: The agent to attach the RSS sensor on.
+
+    Returns:
+      The spawned RSS sensor.
+    """
+    # Get hero's world.
+    world = hero.get_world()
+    # Blueprints library.
+    bl = world.get_blueprint_library()
+    # Configure blueprint.
+    rss_bp = bl.find("sensor.other.rss")
+    logging.debug("Spawns a lane invasion sensor")
+    return world.spawn_actor(
+        rss_bp,
+        carla.Transform(carla.Location(x=0.0, z=0.0)),  # pylint: disable=no-member
+        attach_to=hero,
+    )
+
+
 def get_spawn_point(
     world: carla.World,  # pylint: disable=no-member
     spawn_point: Optional[Union[int, carla.Transform]],  # pylint: disable=no-member

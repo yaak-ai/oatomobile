@@ -73,6 +73,7 @@ class CARLASensorTypes(simulator.SensorTypes):
     ACTORS_TRACKER = 21
     GOAL = 22
     PREDICTIONS = 23
+    RSS = 24
 
 
 class CameraSensor(simulator.Sensor, abc.ABC):
@@ -1088,6 +1089,91 @@ class LaneInvasionSensor(simulator.Sensor):
     def default(
         cls, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
     ) -> "LaneInvasionSensor":
+        """Returns the default sensor."""
+        return cls(hero=hero)
+
+
+@registry.register_sensor(name="rss")
+class RSSSafetySensor(simulator.Sensor):
+
+    """RSS Safety Score."""
+
+    def __init__(
+        self, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
+    ) -> None:
+        """Constructs an rss invasion sensor."""
+        super().__init__(*args, **kwargs)
+        self.sensor = self._spawn_sensor(hero)
+        self.queue = queue.Queue()
+        self.sensor.listen(self.queue.put)
+        self.sensor.road_boundaries_mode = carla.RssRoadBoundariesMode.On
+        self.sensor.reset_routing_targets()
+
+    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+        """Returns the universal unique identifier of the sensor."""
+        return "rss"
+
+    def _get_sensor_type(self, *args: Any, **kwargs: Any) -> CARLASensorTypes:
+        """Returns the the type of the sensor."""
+        return CARLASensorTypes.RSS
+
+    @property
+    def observation_space(self, *args: Any, **kwargs: Any) -> gym.spaces.Discrete:
+        """Returns the observation spec of the sensor."""
+        return gym.spaces.Discrete(n=2)  # {0: safe, 1: un-safe}
+
+    @staticmethod
+    def _spawn_sensor(
+        hero: carla.ActorBlueprint,  # pylint: disable=no-member
+    ) -> carla.ServerSideSensor:  # pylint: disable=no-member
+        """Spawns rss safety sensor on `hero`.
+
+        Args:
+          hero: The agent to attach the RSS sensor.
+
+        Returns:
+          The spawned RSS sensor.
+        """
+        return cutil.spawn_rss(hero)
+
+    def get_observation(self, frame: int, **kwargs) -> int:
+        """Finds the data point that matches the current `frame` id.
+
+        Args:
+          frame: The synchronous simulation time step ID.
+
+        Returns:
+          The RSS safety:
+            0: safe.
+            1: un-safe.
+        """
+        import pdb
+
+        pdb.set_trace()
+        try:
+            for event in self.queue.queue:
+                # Confirms synced frames.
+                if event.frame == frame:
+                    return 1
+            # Default return value.
+            return 0
+        except queue.Empty:
+            logging.debug(
+                "The queue of {} sensor was empty, returns a random observation".format(
+                    self.uuid
+                )
+            )
+            return self.observation_space.sample()
+
+    def close(self) -> None:
+        """Destroys the lane invasion sensor from the CARLA server."""
+        self.sensor.stop()
+        self.sensor.destroy()
+
+    @classmethod
+    def default(
+        cls, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
+    ) -> "RSSSafetySensor":
         """Returns the default sensor."""
         return cls(hero=hero)
 

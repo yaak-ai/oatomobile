@@ -152,6 +152,7 @@ GAME_STATE_CONFIG = {
 
 # Default sensors.
 CARLA_SENSORS = (
+    "rss",
     "goal",
     "front_camera_rgb",
     "lidar",

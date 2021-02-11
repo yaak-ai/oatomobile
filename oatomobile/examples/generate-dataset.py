@@ -15,6 +15,7 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
     print("Generating dataset for {}".format(town))
 
     SENSORS = [
+        "rss",
         "lidar",
         "front_camera_rgb",
         "control",
