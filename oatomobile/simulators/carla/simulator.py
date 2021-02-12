@@ -1246,14 +1246,15 @@ class ObstacleSensor(simulator.Sensor):
         try:
             for event in self.queue.queue:
                 if event.frame == frame:
+
                     if "vehicle" in event.other_actor.type_id:
                         return 1
-                    elif "walker" in event.other_actor.type_id:
+                    elif "walker.pedestrian" in event.other_actor.type_id:
                         return 2
-                    elif "static" in event.other_actor.type_id:
+                    elif "static.prop" in event.other_actor.type_id:
                         return 3
 
-            # Default return value. Collision with unlabeled object
+            # Default return value. On Obstacle with any object
             return 0
         except queue.Empty:
             logging.debug(
