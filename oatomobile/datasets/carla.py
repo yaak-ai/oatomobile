@@ -238,6 +238,47 @@ class CARLADataset(Dataset):
             render_mode="human" if render else "none",
         ).run()
 
+    @classmethod
+    def build_front_cam_video(
+        cls,
+        dataset_dir: str,
+        output_file: str,
+    ) -> None:
+        """Build video from driver view
+
+        Args:
+          dataset_dir: The parent directory of all the dataset.
+          output_fname: The full path to the output filename.
+        """
+
+        metadata = os.path.join(dataset_dir, "metadata")
+
+        with open(metadata) as pfile:
+            uuids = pfile.readlines()
+            uuids = [uuid.strip() for uuid in uuids]
+
+        data_files = [os.path.join(dataset_dir, uuid + ".npz") for uuid in uuids]
+
+        # Container that stores all locaitons.
+        images = list()
+        for npz_fname in tqdm.tqdm(data_files):
+            try:
+                images.append(
+                    cls.load_datum(
+                        npz_fname,
+                        modalities=["front_camera_rgb"],
+                        mode=False,
+                    )["front_camera_rgb"]
+                )
+            except Exception as e:
+                if isinstance(e, KeyboardInterrupt):
+                    sys.exit(0)
+
+        import skvideo.io
+
+        skvideo.io.vwrite(output_file, (255 * np.array(images)).astype(np.uint8))
+        logging.info("Done writing {output_file}")
+
     @staticmethod
     def process(
         dataset_dir: str,

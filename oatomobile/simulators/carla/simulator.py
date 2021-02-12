@@ -1212,9 +1212,8 @@ class ObstacleSensor(simulator.Sensor):
     @property
     def observation_space(self, *args: Any, **kwargs: Any) -> gym.spaces.Discrete:
         """Returns the observation spec of the sensor."""
-        # https://carla.readthedocs.io/en/latest/ref_sensors/#semantic-segmentation-camera
-        # 7 -> Road etc
-        return gym.spaces.Discrete(n=22)
+        # https://carla.readthedocs.io/en/latest/bp_library/#static
+        return gym.spaces.Discrete(n=4)
 
     @staticmethod
     def _spawn_sensor(
@@ -1238,15 +1237,22 @@ class ObstacleSensor(simulator.Sensor):
 
         Returns:
           The Obstacle detector:
-            0: Unlabeled
-            1-22: Collision with object with semantic tag
+            0: No-obstacle
+            1: vehicle
+            2: pedestrian
+            3: static/props
         """
 
         try:
             for event in self.queue.queue:
                 if event.frame == frame:
-                    obstacle = event.other_actor
-                    return obstacle.semantic_tags[0]
+                    if "vehicle" in event.other_actor.type_id:
+                        return 1
+                    elif "walker" in event.other_actor.type_id:
+                        return 2
+                    elif "static" in event.other_actor.type_id:
+                        return 3
+
             # Default return value. Collision with unlabeled object
             return 0
         except queue.Empty:
