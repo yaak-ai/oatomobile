@@ -17,16 +17,18 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
     SENSORS = [
         "rss",
         "lidar",
-        "front_camera_rgb",
-        "control",
-        "velocity",
-        "acceleration",
+        "obstacle",
         "collision",
         "lane_invasion",
         "red_light_invasion",
         "is_at_traffic_light",
         "traffic_light_state",
         "actors_tracker",
+        "front_camera_rgb",
+        "control",
+        "velocity",
+        "acceleration",
+        "location",
     ]
 
     dataset.collect(

@@ -548,7 +548,7 @@ class CARLADataset(Dataset):
             os.path.join(output_fname),
             bbox_inches="tight",
             pad_inches=0,
-            transparent=True,
+            transparent=False,
         )
 
     @classmethod

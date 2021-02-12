@@ -74,6 +74,7 @@ class CARLASensorTypes(simulator.SensorTypes):
     GOAL = 22
     PREDICTIONS = 23
     RSS = 24
+    OBSTACLE = 25
 
 
 class CameraSensor(simulator.Sensor, abc.ABC):
@@ -1062,7 +1063,7 @@ class LaneInvasionSensor(simulator.Sensor):
           frame: The synchronous simulation time step ID.
 
         Returns:
-          The collision type:
+          The invasion type:
             0: no invasion.
             1: lane invasion.
         """
@@ -1107,6 +1108,7 @@ class RSSSafetySensor(simulator.Sensor):
         self.queue = queue.Queue()
         self.sensor = self._spawn_sensor(hero)
         self.sensor.listen(self.queue.put)
+        self.sensor.road_boundaries_mode = carla.RssRoadBoundariesMode.On
         self.sensor.reset_routing_targets()
 
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
@@ -1178,6 +1180,92 @@ class RSSSafetySensor(simulator.Sensor):
     def default(
         cls, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
     ) -> "RSSSafetySensor":
+        """Returns the default sensor."""
+        return cls(hero=hero)
+
+
+@registry.register_sensor(name="obstacle")
+class ObstacleSensor(simulator.Sensor):
+
+    """Obstacle Sensor
+    https://carla.readthedocs.io/en/latest/ref_sensors/#obstacle-detector
+    """
+
+    def __init__(
+        self, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
+    ) -> None:
+
+        """Constructs an obstacle detector sensor."""
+        super().__init__(*args, **kwargs)
+        self.queue = queue.Queue()
+        self.sensor = self._spawn_sensor(hero)
+        self.sensor.listen(self.queue.put)
+
+    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+        """Returns the universal unique identifier of the sensor."""
+        return "obstacle"
+
+    def _get_sensor_type(self, *args: Any, **kwargs: Any) -> CARLASensorTypes:
+        """Returns the the type of the sensor."""
+        return CARLASensorTypes.OBSTACLE
+
+    @property
+    def observation_space(self, *args: Any, **kwargs: Any) -> gym.spaces.Discrete:
+        """Returns the observation spec of the sensor."""
+        # https://carla.readthedocs.io/en/latest/ref_sensors/#semantic-segmentation-camera
+        # 7 -> Road etc
+        return gym.spaces.Discrete(n=22)
+
+    @staticmethod
+    def _spawn_sensor(
+        hero: carla.ActorBlueprint,  # pylint: disable=no-member
+    ) -> carla.ServerSideSensor:  # pylint: disable=no-member
+        """Spawns obstacle detector sensor on `hero`.
+
+        Args:
+          hero: The agent to attach the Obstacle detector sensor.
+
+        Returns:
+          The spawned Obstacle detector sensor.
+        """
+        return cutil.spawn_obstacle(hero)
+
+    def get_observation(self, frame: int, **kwargs) -> int:
+        """Finds the data point that matches the current `frame` id.
+
+        Args:
+          frame: The synchronous simulation time step ID.
+
+        Returns:
+          The Obstacle detector:
+            0: Unlabeled
+            1-22: Collision with object with semantic tag
+        """
+
+        try:
+            for event in self.queue.queue:
+                if event.frame == frame:
+                    obstacle = event.other_actor
+                    return obstacle.semantic_tags[0]
+            # Default return value. Collision with unlabeled object
+            return 0
+        except queue.Empty:
+            logging.debug(
+                "The queue of {} sensor was empty, returns a random observation".format(
+                    self.uuid
+                )
+            )
+            return self.observation_space.sample()
+
+    def close(self) -> None:
+        """Destroys the Obstacle Sensor from the CARLA server."""
+        self.sensor.stop()
+        self.sensor.destroy()
+
+    @classmethod
+    def default(
+        cls, hero: carla.ActorBlueprint, *args, **kwargs  # pylint: disable=no-member
+    ) -> "ObstacleSensor":
         """Returns the default sensor."""
         return cls(hero=hero)
 
@@ -1506,6 +1594,8 @@ class RedLightInvasion(simulator.Sensor):
         # If speed > 5 kph
         if is_red and hero_speed > 5:
             return 1
+        else:
+            return 0
 
     def close(self) -> None:
         """Dummy call, to satisfy interface."""
