@@ -54,7 +54,7 @@ class Episode:
         sample_token = next(tokens)
 
         # Stores the `NumPy` tensors on the disk.
-        np.savez(
+        np.savez_compressed(
             os.path.join(
                 self._episode_dir,
                 "{}.npz".format(sample_token),

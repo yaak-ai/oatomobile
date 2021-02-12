@@ -135,7 +135,7 @@ def carla_rgb_image_to_ndarray(
     """
     image.convert(carla.ColorConverter.Raw)  # pylint: disable=no-member
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
-    array = array.astype(np.float32) / 255
+    # array = array.astype(np.float32) / 255
     array = np.reshape(array, (image.height, image.width, 4))
     array = array[:, :, :3]
     array = array[:, :, ::-1]

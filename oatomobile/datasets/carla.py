@@ -276,7 +276,7 @@ class CARLADataset(Dataset):
 
         import skvideo.io
 
-        skvideo.io.vwrite(output_file, (255 * np.array(images)).astype(np.uint8))
+        skvideo.io.vwrite(output_file, np.array(images))
         logging.info("Done writing {output_file}")
 
     @staticmethod
