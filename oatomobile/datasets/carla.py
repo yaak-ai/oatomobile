@@ -158,13 +158,6 @@ class CARLADataset(Dataset):
             sample["mode"] = np.atleast_1d(sample["mode"])
             sample["mode"] = sample["mode"].astype(dtype)
 
-        if "lidar" in sample:
-            arr = sample["lidar"]
-            W, H, C = arr.shape
-            assert C == 2
-            # Select channel.
-            sample["lidar"] = np.c_[arr, np.zeros(shape=(W, H, 1))]
-
         # Records the path to the sample.
         sample["name"] = fname
 

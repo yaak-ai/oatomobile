@@ -214,30 +214,17 @@ def carla_lidar_measurement_to_ndarray(
     points = np.reshape(points, (len(lidar_measurement), 4))
 
     # Split observations in the Z dimension (height).
-    below = points[points[..., 2] <= -2.5]
-    above = points[points[..., 2] >= -2.5]
+    below = points[points[..., 2] <= -1.0]
+    mid = points[np.logical_and(points[..., 2] > -1.0, points[..., 2] <= 2.0)]
+    above = points[points[..., 2] > 2.0]
     # Convert point clouds to 2D histograms.
 
-    features = list()
-    features.append(
-        splat_points(
-            below,
-            pixels_per_meter,
-            hist_max_per_pixel,
-            meters_max,
-        )
-    )
-    features.append(
-        splat_points(
-            above,
-            pixels_per_meter,
-            hist_max_per_pixel,
-            meters_max,
-        )
-    )
+    features = [
+        splat_points(slice, pixels_per_meter, hist_max_per_pixel, meters_max)
+        for slice in [below, mid, above]
+    ]
 
-    H, W = features[0].shape
-    features = np.stack(features + [np.zeros(shape=(H, W))], axis=-1)
+    features = np.stack(features, axis=-1)
     return (255 * features).astype(np.uint8)
 
 
