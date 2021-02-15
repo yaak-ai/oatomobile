@@ -28,6 +28,7 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
         "right_camera_rgb",
         "left_camera_rgb",
         "rear_camera_rgb",
+        "bird_view_camera_rgb",
         "control",
         "velocity",
         "acceleration",
