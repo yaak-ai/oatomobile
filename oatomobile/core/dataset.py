@@ -23,6 +23,8 @@ from typing import Sequence
 from typing import Union
 
 import numpy as np
+import skimage.io
+from skvideo.io import FFmpegWriter
 
 from oatomobile.utils.uuid import unique_token_generator
 
@@ -36,6 +38,15 @@ class Episode:
         self,
         parent_dir: str,
         token: str,
+        views=[
+            "lidar",
+            "front_camera_rgb",
+            "left_camera_rgb",
+            "right_camera_rgb",
+            "rear_camera_rgb",
+            "bird_view_camera_rgb",
+            "bird_view_camera_cityscapes",
+        ],
     ) -> None:
         """Constructs an episode with a unique identifier."""
         self._parent_dir = parent_dir
@@ -44,6 +55,10 @@ class Episode:
         # The path where the samples are stored/recovered.
         self._episode_dir = os.path.join(self._parent_dir, self._token)
         os.makedirs(self._episode_dir, exist_ok=True)
+        self.videos = {
+            view: FFmpegWriter(os.path.join(self._episode_dir, view + ".mp4"))
+            for view in views
+        }
 
         # The episode's metadata.
         self._metadata_fname = os.path.join(self._episode_dir, "metadata")
@@ -54,6 +69,11 @@ class Episode:
         sample_token = next(tokens)
 
         # Stores the `NumPy` tensors on the disk.
+        for view, vid in self.videos.items():
+            if view in observations:
+                self.videos[view].writeFrame(observations[view])
+                observations[view] = []
+
         np.savez_compressed(
             os.path.join(
                 self._episode_dir,

@@ -136,6 +136,7 @@ def carla_rgb_image_to_ndarray(
     image.convert(carla.ColorConverter.Raw)  # pylint: disable=no-member
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
     # array = array.astype(np.float32) / 255
+    # HSS : Keep uint8 array to save size of npz file
     array = np.reshape(array, (image.height, image.width, 4))
     array = array[:, :, :3]
     array = array[:, :, ::-1]
@@ -203,9 +204,12 @@ def carla_lidar_measurement_to_ndarray(
         # Normalize histogram by the maximum number of points in a bin we care about.
         overhead_splat = hist / hist_max_per_pixel
         # Return splat in X x Y orientation, with X parallel to car axis, Y perp, both parallel to ground.
+
         return overhead_splat
 
     # Serialise and parse to `NumPy` tensor.
+    # https://docs.scipy.org/doc/numpy-1.13.0/reference/arrays.dtypes.html
+    # f4 is f32.
     points = np.frombuffer(lidar_measurement.raw_data, dtype=np.dtype("f4"))
     points = np.reshape(points, (len(lidar_measurement), 4))
 
@@ -213,6 +217,7 @@ def carla_lidar_measurement_to_ndarray(
     below = points[points[..., 2] <= -2.5]
     above = points[points[..., 2] >= -2.5]
     # Convert point clouds to 2D histograms.
+
     features = list()
     features.append(
         splat_points(
@@ -230,9 +235,10 @@ def carla_lidar_measurement_to_ndarray(
             meters_max,
         )
     )
-    features = np.stack(features, axis=-1)
 
-    return features.astype(np.float32)
+    H, W = features[0].shape
+    features = np.stack(features + [np.zeros(shape=(H, W))], axis=-1)
+    return (255 * features).astype(np.uint8)
 
 
 def spawn_hero(

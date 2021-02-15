@@ -158,6 +158,13 @@ class CARLADataset(Dataset):
             sample["mode"] = np.atleast_1d(sample["mode"])
             sample["mode"] = sample["mode"].astype(dtype)
 
+        if "lidar" in sample:
+            arr = sample["lidar"]
+            W, H, C = arr.shape
+            assert C == 2
+            # Select channel.
+            sample["lidar"] = np.c_[arr, np.zeros(shape=(W, H, 1))]
+
         # Records the path to the sample.
         sample["name"] = fname
 
@@ -243,6 +250,7 @@ class CARLADataset(Dataset):
         cls,
         dataset_dir: str,
         output_file: str,
+        type: str,
     ) -> None:
         """Build video from driver view
 
@@ -266,9 +274,9 @@ class CARLADataset(Dataset):
                 images.append(
                     cls.load_datum(
                         npz_fname,
-                        modalities=["front_camera_rgb"],
+                        modalities=[type],
                         mode=False,
-                    )["front_camera_rgb"]
+                    )[type]
                 )
             except Exception as e:
                 if isinstance(e, KeyboardInterrupt):
@@ -401,7 +409,12 @@ class CARLADataset(Dataset):
         # Draws LIDAR.
         if "lidar" in datum:
             bev_meters = 25.0
-            lidar = gutil.lidar_2darray_to_rgb(datum["lidar"])
+            # lidar = gutil.lidar_2darray_to_rgb(datum["lidar"])
+            arr = datum["lidar"]
+            W, H, C = arr.shape
+            assert C == 2
+            # Select channel.
+            lidar = np.c_[arr, np.zeros(shape=(W, H, 1))]
             fig, ax = plt.subplots(figsize=(3.0, 3.0))
             ax.imshow(
                 np.transpose(lidar, (1, 0, 2)),
