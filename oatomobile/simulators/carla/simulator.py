@@ -1893,7 +1893,7 @@ class CARLASimulator(simulator.Simulator):
             num_vehicles=self._num_vehicles,
             traffic_manager=self._tm,
         )
-        for response in self._client.apply_batch_sync(self._vehicles, False):
+        for response in self._client.apply_batch_sync(self._vehicles, True):
             if response.error:
                 logging.error(response.error)
             else:
@@ -1904,7 +1904,7 @@ class CARLASimulator(simulator.Simulator):
             num_pedestrians=self._num_pedestrians,
             traffic_manager=self._tm,
         )
-        for response in self._client.apply_batch_sync(self._pedestrians):
+        for response in self._client.apply_batch_sync(self._pedestrians, True):
             if response.error:
                 logging.error(response.error)
             else:
