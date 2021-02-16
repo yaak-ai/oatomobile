@@ -1,12 +1,11 @@
 import argparse
 
-import gym
 import torch
 import oatomobile
 
 import oatomobile.envs
 from oatomobile.baselines.torch import CILAgent, DIMAgent, RIPAgent
-from oatomobile.baselines.torch import BehaviouralModel, ImitativeModel, RIPAgent
+from oatomobile.baselines.torch import ImitativeModel
 
 AGENT_LIST = {'dim': DIMAgent, 'rip': RIPAgent, 'cil': CILAgent}
 

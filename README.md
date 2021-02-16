@@ -66,24 +66,38 @@ action = agent.act(observation)
 
 ## Installation
 
-We have tested OATomobile on Python 3.5.
+We have tested OATomobile on Python 3.7
 
-1.  To install the core libraries (including [CARLA], the backend simulator):
+### Carla
+
+1.  To run Carla in docker you'd need [docker](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#setting-up-docker) / [nvidia-docker](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) installed
+
+    ```
+      1. Use Carla docker
+      2. Build PythonAPI to test simulator
+    ```
 
     ```bash
-    # The path to download CARLA 0.9.6.
-    export CARLA_ROOT=...
-    mkdir -p $CARLA_ROOT
-
-    # Downloads hosted binaries.
-    wget http://carla-assets-internal.s3.amazonaws.com/Releases/Linux/CARLA_0.9.6.tar.gz
-
-    # CARLA 0.9.6 installation.
-    tar -xvzf CARLA_0.9.6.tar.gz -C $CARLA_ROOT
-
-    # Installs CARLA 0.9.6 Python API.
-    easy_install $CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg
+    # Fetch Carl docker
+    docker pull carlasim/carla:0.9.11
+    docker tag carlasim/carla:0.9.11 latest
+    # Carla on machine w/display
+    docker run -p 2000-2002:2000-2002 --runtime=nvidia  --gpus all -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -it carlasim/carla:latest  ./CarlaUE4.sh -opengl $1
+    # Headless Carla
+    docker run -p 2000-2002:2000-2002 --cpuset-cpus="0-5" --runtime=nvidia --gpus 'all,"capabilities=graphics,utility,display,video,compute"' -e SDL_VIDEODRIVER='offscreen' -v /tmp/.X11-unix:/tmp/.X11-unix -it carlasim/carla:latest ./CarlaUE4.sh
     ```
+
+    ```
+    conda create -n carla python=3.7
+    conda activate carla
+    git clone git@github.com:yaak-ai/carla.git
+    git checkout 0.9.11
+    # Follow dependencies https://carla.readthedocs.io/en/latest/build_linux/#dependencies
+    make PythonAPI
+    easy_install PythonAPI/carla/dist/carla-0.9.11-py3.7-linux-x86_64.egg
+    ```
+
+### OATomobile
 
 1.  To install the OATomobile core API:
 
