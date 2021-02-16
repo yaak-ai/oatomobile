@@ -304,7 +304,7 @@ def spawn_vehicles(
             vehicle_bp.set_attribute("driver_id", driver_id)
         vehicle_bp.set_attribute("role_name", "autopilot")
         spawn_point = spawn_points[i]
-        print(f"vehicle {spawn_point}")
+        # print(f"vehicle {spawn_point}")
 
         actors.append(
             SpawnActor(vehicle_bp, spawn_point).then(
@@ -354,7 +354,7 @@ def spawn_pedestrians(
         pedestrian_bp.set_attribute("is_invincible", "true")
         # Get random location.
         # Attempt to spawn vehicle in random location.
-        print(f"pedestrian {spawn_points[i]}")
+        # print(f"pedestrian {spawn_points[i]}")
         actors.append(SpawnActor(pedestrian_bp, spawn_points[i]))
 
     logging.debug("Spawned {} pedestrians".format(len(actors)))

@@ -1802,7 +1802,7 @@ class CARLASimulator(simulator.Simulator):
         self._pedestrians = None
         self._pedestrians_list = []
         self._walkers = []
-        self._walkers_list = []
+        self._walkers_ai_list = []
         self._all_id = []
         self._sensor_suite = None
         self._hero = None
@@ -1893,7 +1893,7 @@ class CARLASimulator(simulator.Simulator):
             num_vehicles=self._num_vehicles,
             traffic_manager=self._tm,
         )
-        for response in self._client.apply_batch_sync(self._vehicles):
+        for response in self._client.apply_batch_sync(self._vehicles, False):
             if response.error:
                 logging.error(response.error)
             else:
@@ -1912,7 +1912,7 @@ class CARLASimulator(simulator.Simulator):
         # Spawn AI walker controller
         self._walkers_ai = cutil.spawn_walker_ai(
             world=self._world,
-            walkers_list=self._pedestrians,
+            walkers_list=self._pedestrians_list,
         )
         for response in self._client.apply_batch_sync(self._walkers_ai, True):
             if response.error:
@@ -1925,7 +1925,7 @@ class CARLASimulator(simulator.Simulator):
 
         # Let half of the pedestrians to walk across cross walks
         self._world.set_pedestrians_cross_factor(50)
-        for walker in self._walkers_ai:
+        for walker in self._world.get_actors(self._walkers_ai_list):
             # start walker
             walker.start()
             # set walk to random point
