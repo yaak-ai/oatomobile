@@ -23,7 +23,6 @@ from typing import Sequence
 from typing import Union
 
 import numpy as np
-import skimage.io
 from skvideo.io import FFmpegWriter
 
 from oatomobile.utils.uuid import unique_token_generator

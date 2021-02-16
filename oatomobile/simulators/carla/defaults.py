@@ -181,9 +181,6 @@ AVAILABLE_CARLA_TOWNS = (
     "Town03",
     "Town04",
     "Town05",
-    "Town06",
-    "Town07",
-    "Town10HD",
 )
 
 # Speed configuration of autopilot.

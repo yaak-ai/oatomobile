@@ -73,9 +73,6 @@ def setup(
         "Town03",
         "Town04",
         "Town05",
-        "Town06",
-        "Town07",
-        "Town10HD",
     )
 
     # The attempts counter.
@@ -141,6 +138,11 @@ def carla_rgb_image_to_ndarray(
     array = array[:, :, :3]
     array = array[:, :, ::-1]
     return array
+
+
+def setup_traffic(client, port=8000):
+
+    return client.get_trafficmanager(port=port)
 
 
 def carla_cityscapes_image_to_ndarray(
@@ -263,6 +265,7 @@ def spawn_hero(
 def spawn_vehicles(
     world: carla.World,  # pylint: disable=no-member
     num_vehicles: int,
+    traffic_manager: carla.TrafficManager,
 ) -> Sequence[carla.Vehicle]:  # pylint: disable=no-member
     """Spawns `vehicles` randomly in spawn points.
 
@@ -273,22 +276,42 @@ def spawn_vehicles(
     Returns:
       The list of vehicles actors.
     """
+
+    # @todo cannot import these directly.
+    # borrowed from carla/PythonAPI/examples/spawn_npc.py
+    SpawnActor = carla.command.SpawnActor
+    SetAutopilot = carla.command.SetAutopilot
+    FutureActor = carla.command.FutureActor
+
     # Blueprints library.
     bl = world.get_blueprint_library()
     # List of spawn points.
     spawn_points = world.get_map().get_spawn_points()
     # Output container
-    actors = list()
-    for _ in range(num_vehicles):
+    actors = []
+
+    random.shuffle(spawn_points)
+    for i in range(num_vehicles):
         # Fetch random blueprint.
         vehicle_bp = random.choice(bl.filter("vehicle.*"))
-        # Attempt to spawn vehicle in random location.
-        actor = world.try_spawn_actor(vehicle_bp, random.choice(spawn_points))
-        if actor is not None:
-            # Enable autopilot.
-            actor.set_autopilot(True)
-            # Append actor to the list.
-            actors.append(actor)
+        if vehicle_bp.has_attribute("color"):
+            color = random.choice(vehicle_bp.get_attribute("color").recommended_values)
+            vehicle_bp.set_attribute("color", color)
+        if vehicle_bp.has_attribute("driver_id"):
+            driver_id = random.choice(
+                vehicle_bp.get_attribute("driver_id").recommended_values
+            )
+            vehicle_bp.set_attribute("driver_id", driver_id)
+        vehicle_bp.set_attribute("role_name", "autopilot")
+        spawn_point = spawn_points[i]
+        print(f"vehicle {spawn_point}")
+
+        actors.append(
+            SpawnActor(vehicle_bp, spawn_point).then(
+                SetAutopilot(FutureActor, True, traffic_manager.get_port())
+            )
+        )
+
     logging.debug("Spawned {} other vehicles".format(len(actors)))
     return actors
 
@@ -296,6 +319,7 @@ def spawn_vehicles(
 def spawn_pedestrians(
     world: carla.World,  # pylint: disable=no-member
     num_pedestrians: int,
+    traffic_manager: carla.TrafficManager,
     speeds: Sequence[float] = (1.0, 1.5, 2.0),
 ) -> Sequence[carla.Vehicle]:  # pylint: disable=no-member
     """Spawns `pedestrians` in random locations.
@@ -308,27 +332,46 @@ def spawn_pedestrians(
     Returns:
       The list of pedestrians actors.
     """
+
+    SpawnActor = carla.command.SpawnActor
     # Blueprints library.
     bl = world.get_blueprint_library()
     # Output container
     actors = list()
-    for n in range(num_pedestrians):
+    spawn_points = []
+    for i in range(num_pedestrians):
+        spawn_point = carla.Transform()
+        loc = world.get_random_location_from_navigation()
+        if loc is not None:
+            spawn_point.location = loc
+            spawn_points.append(spawn_point)
+    # TM port
+    # tm_port = traffic_manager.get_port()
+    for i in range(num_pedestrians):
         # Fetch random blueprint.
         pedestrian_bp = random.choice(bl.filter("walker.pedestrian.*"))
         # Make pedestrian invicible.
         pedestrian_bp.set_attribute("is_invincible", "true")
-        while len(actors) != n:
-            # Get random location.
-            spawn_point = carla.Transform()  # pylint: disable=no-member
-            spawn_point.location = world.get_random_location_from_navigation()
-            if spawn_point.location is None:
-                continue
-            # Attempt to spawn vehicle in random location.
-            actor = world.try_spawn_actor(pedestrian_bp, spawn_point)
-            if actor is not None:
-                actors.append(actor)
+        # Get random location.
+        # Attempt to spawn vehicle in random location.
+        print(f"pedestrian {spawn_points[i]}")
+        actors.append(SpawnActor(pedestrian_bp, spawn_points[i]))
+
     logging.debug("Spawned {} pedestrians".format(len(actors)))
     return actors
+
+
+def spawn_walker_ai(
+    world: carla.World,  # pylint: disable=no-member
+    walkers_list: [],
+):
+    SpawnActor = carla.command.SpawnActor
+
+    batch = []
+    walker_controller_bp = world.get_blueprint_library().find("controller.ai.walker")
+    for walker in walkers_list:
+        batch.append(SpawnActor(walker_controller_bp, carla.Transform(), walker))
+    return batch
 
 
 def spawn_camera(
@@ -713,7 +756,7 @@ def world2local(
     *,
     current_location: np.ndarray,
     current_rotation: np.ndarray,
-    world_locations: np.ndarray
+    world_locations: np.ndarray,
 ) -> np.ndarray:
     """Converts `world_locations` to local coordinates.
 
@@ -743,7 +786,7 @@ def local2world(
     *,
     current_location: np.ndarray,
     current_rotation: np.ndarray,
-    local_locations: np.ndarray
+    local_locations: np.ndarray,
 ) -> np.ndarray:
     """Converts `local_locations` to global coordinates.
 

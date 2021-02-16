@@ -1798,7 +1798,12 @@ class CARLASimulator(simulator.Simulator):
         self._frame0 = None
         self._dt = None
         self._vehicles = None
+        self._vehicles_list = []
         self._pedestrians = None
+        self._pedestrians_list = []
+        self._walkers = []
+        self._walkers_list = []
+        self._all_id = []
         self._sensor_suite = None
         self._hero = None
         self._destination = destination
@@ -1870,6 +1875,8 @@ class CARLASimulator(simulator.Simulator):
             fps=self._fps,
             client_timeout=self._client_timeout,
         )
+        # Traffic Manager
+        self._tm = cutil.setup_traffic(self._client)
         self._frame0 = int(self._frame)
         self._dt = self._world.get_settings().fixed_delta_seconds
 
@@ -1879,16 +1886,52 @@ class CARLASimulator(simulator.Simulator):
             spawn_point=self.spawn_point,
             vehicle_id="vehicle.tesla.cybertruck",
         )
+
         # Initializes the other vehicles.
         self._vehicles = cutil.spawn_vehicles(
             world=self._world,
             num_vehicles=self._num_vehicles,
+            traffic_manager=self._tm,
         )
+        for response in self._client.apply_batch_sync(self._vehicles):
+            if response.error:
+                logging.error(response.error)
+            else:
+                self._vehicles_list.append(response.actor_id)
         # Initializes the pedestrians.
         self._pedestrians = cutil.spawn_pedestrians(
             world=self._world,
             num_pedestrians=self._num_pedestrians,
+            traffic_manager=self._tm,
         )
+        for response in self._client.apply_batch_sync(self._pedestrians):
+            if response.error:
+                logging.error(response.error)
+            else:
+                self._pedestrians_list.append(response.actor_id)
+        # Spawn AI walker controller
+        self._walkers_ai = cutil.spawn_walker_ai(
+            world=self._world,
+            walkers_list=self._pedestrians,
+        )
+        for response in self._client.apply_batch_sync(self._walkers_ai, True):
+            if response.error:
+                logging.error(response.error)
+            else:
+                self._walkers_ai_list.append(response.actor_id)
+
+        # wait for a tick to ensure client receives the last transform of the walkers we have just created
+        self._world.tick()
+
+        # Let half of the pedestrians to walk across cross walks
+        self._world.set_pedestrians_cross_factor(50)
+        for walker in self._walkers_ai:
+            # start walker
+            walker.start()
+            # set walk to random point
+            walker.go_to_location(self._world.get_random_location_from_navigation())
+            # max speed
+            # walker.set_max_speed(float(walker_speed[int(i / 2)]))
         # Registers the sensors.
         self._sensor_suite = simulator.SensorSuite(
             [
