@@ -185,6 +185,7 @@ class CARLADataset(Dataset):
             "actors_tracker",
         ),
         render: bool = False,
+        port: int = 2000,
     ) -> None:
         """Collects autopilot demonstrations for a single episode on CARLA.
 
@@ -223,6 +224,7 @@ class CARLADataset(Dataset):
             destination=destination,
             num_vehicles=num_vehicles,
             num_pedestrians=num_pedestrians,
+            port=port,
         )
         # Terminates episode if a collision occurs.
         env = TerminateOnCollisionWrapper(env)

@@ -53,7 +53,8 @@ class CARLAEnv(Env):
         fps: int = defaults.SIMULATOR_FPS,
         sensors: Sequence[str] = defaults.CARLA_SENSORS,
         num_vehicles: int = 0,
-        num_pedestrians: int = 0
+        num_pedestrians: int = 0,
+        port: int = 2000
     ) -> None:
         """Constructs a CARLA simulator-based OpenAI gym-compatible environment.
 
@@ -99,6 +100,7 @@ class CARLAEnv(Env):
             destination=destination,
             num_vehicles=num_vehicles,
             num_pedestrians=num_pedestrians,
+            port=port,
         )
 
     @property

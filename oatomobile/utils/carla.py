@@ -44,6 +44,7 @@ import carla
 def setup(
     town: str,
     fps: int = 20,
+    port: int = 2000,
     server_timestop: float = 20.0,
     client_timeout: float = 20.0,
     num_max_restarts: int = 5,
@@ -86,7 +87,7 @@ def setup(
         )
 
         # TODO : Pass as arg
-        port = 2000
+        # port = 2000
 
         # Connect client. Should be running in the Docker
         logging.debug("Connects a CARLA client at port={}".format(port))
