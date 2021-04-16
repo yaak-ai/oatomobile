@@ -24,6 +24,7 @@ def merge_stats(return_dict, nj):
         "red_light_invasion": 0,
         "rss": 0,
         "clean": 0,
+        "lane_invasion": 0,
     }
     ep_stats = {}
 
@@ -68,7 +69,7 @@ def parse_episodes(args):
         #     metadata, position=2 * group_number + 1, ascii=True, leave=False
         # )
 
-        obstacle, collision, red_light_invasion, rss = [], [], [], []
+        obstacle, collision, red_light_invasion, rss, lane_invasion = [], [], [], [], []
 
         for fname in metadata:
             npz_file = episode.joinpath(fname + ".npz")
@@ -77,12 +78,14 @@ def parse_episodes(args):
             collision.append(annotations["collision"])
             red_light_invasion.append(annotations["red_light_invasion"])
             rss.append(annotations["rss"])
+            lane_invasion.append(annotations["lane_invasion"])
 
         epsisode_stats[episode.name] = {
             "obstacle": int(np.any(obstacle)),
             "collision": int(np.any(collision)),
             "red_light_invasion": int(np.any(red_light_invasion)),
             "rss": int(np.any(rss)),
+            "lane_invasion": int(np.any(lane_invasion)),
         }
 
         stats["obstacle"] += epsisode_stats[episode.name]["obstacle"]
@@ -91,6 +94,7 @@ def parse_episodes(args):
             "red_light_invasion"
         ]
         stats["rss"] += epsisode_stats[episode.name]["rss"]
+        stats["lane_invasion"] += epsisode_stats[episode.name]["lane_invasion"]
 
         stats["clean"] += int(
             np.all(
@@ -99,6 +103,7 @@ def parse_episodes(args):
                     epsisode_stats[episode.name]["collision"] == 0,
                     epsisode_stats[episode.name]["red_light_invasion"] == 0,
                     epsisode_stats[episode.name]["rss"] == 0,
+                    epsisode_stats[episode.name]["lane_invasion"] == 0,
                 ]
             )
         )
@@ -131,6 +136,7 @@ def generate_stats(location, json_path, nj, show):
         ep["red_light_invasion"] = 0
         ep["rss"] = 0
         ep["clean"] = 0
+        ep["lane_invasion"] = 0
         return_dict[n] = {"stats": ep, "epsisode_stats": m.dict()}
 
     args = [
