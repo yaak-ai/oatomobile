@@ -130,7 +130,9 @@ class CARLADataset(Dataset):
         with np.load(fname) as datum:
             for attr in modalities:
                 # Fetches the value.
-                sample[attr] = datum[attr]
+                sample[attr] = datum.get(attr)
+                if sample[attr] is None:
+                    continue
                 # Converts scalars to 1D vectors.
                 sample[attr] = np.atleast_1d(sample[attr])
                 # Casts value to same type.
@@ -739,6 +741,107 @@ class CARLADataset(Dataset):
                     mode=self._mode,
                     dataformat="CHW",
                 )
+
+                # Filters out non-array keys.
+                for key in list(sample):
+                    if not isinstance(sample[key], np.ndarray):
+                        sample.pop(key)
+
+                # Applies (optional) transformation to all values.
+                if self._transform is not None:
+                    sample = {
+                        key: self._transform(val) for (key, val) in sample.items()
+                    }
+                return sample
+
+        return PyTorchDataset(dataset_dir, modalities, transform, mode)
+
+    @classmethod
+    def as_torch_form_video(
+        cls,
+        dataset_dir: str,
+        modalities: Sequence[str],
+        transform: Optional[Callable[[Any], Any]] = None,
+        mode: bool = False,
+        only_array: bool = False,
+    ) -> "torch.utils.data.Dataset":
+        """Implements a data reader and loader for the expert demonstrations from videos.
+
+        Args:
+          dataset_dir: The absolute path to the raw dataset.
+          modalities: The keys of the attributes to fetch.
+          transform: The transformations applied on each datum.
+          mode: If True, it labels its datum with {FORWARD, STOP, LEFT, RIGHT}.
+          only_array: If True, it removes all the keys that are non-array, useful
+            when training a model and want to run `.to(device)` without errors.
+
+        Returns:
+          The unbatched `PyTorch` dataset.
+        """
+        import torch
+
+        class PyTorchDataset(torch.utils.data.Dataset):
+            """Implementa a data reader for the expert demonstrations."""
+
+            def __init__(
+                self,
+                dataset_dir: str,
+                modalities: Sequence[str],
+                transform: Optional[Callable[[Any], Any]] = None,
+                mode: bool = False,
+            ) -> None:
+                """A simple `PyTorch` dataset.
+
+                Args:
+                  dataset_dir: The absolute path to the raw dataset.
+                  modalities: The keys of the attributes to fetch.
+                  mode: If True, it labels its datum with {FORWARD, STOP, LEFT, RIGHT}.
+                """
+                # Internalise hyperparameters.
+                self._modalities = modalities
+                self._npz_files = glob.glob(os.path.join(dataset_dir, "*.npz"))
+                self._transform = transform
+                self._mode = mode
+                episodes = list(np.unique([Path(m).parent for m in self._npz_files]))
+                metadata_files = [e.joinpath("metadata") for e in episodes]
+                self._episodes = {}
+                for m in metadata_files:
+                    with m.open() as pfile:
+                        metadata = pfile.readlines()
+                    metadata = {m.strip() + ".npz": idx for m in enumerate(metadata)}
+                    self._episodes[m.parent.name] = metadata
+
+            def __len__(self) -> int:
+                """Returns the size of the dataset."""
+                return len(self._npz_files)
+
+            def __getitem__(
+                self,
+                idx: int,
+            ) -> Mapping[str, np.ndarray]:
+                """Loads a single datum.
+
+                Returns:
+                  The datum in `NumPy`-friendly format.
+                """
+                # Loads datum from dataset.
+                fname = Path(self._npz_files[idx])
+                sample = cls.load_datum(
+                    fname=fname.as_posix(),
+                    modalities=self._modalities,
+                    mode=self._mode,
+                    dataformat="CHW",
+                )
+                fidx = self._episodes[fname.parent.name][fname.name]
+
+                # Open seek close
+                vid = cv2.VideoCapture(fname.parent.joinpath("lidar.mp4"))
+                vid.set(cv2.CAP_PROP_POS_FRAMES, fidx)
+                ret, lidar = vid.read()
+                vid.close()
+
+                # BGR -> RGB (if this needed) + HWC -> CHW
+                sample["lidar"] = np.transpose(lidar[:, :, (2, 1, 0)], (2, 0, 1))
 
                 # Filters out non-array keys.
                 for key in list(sample):
