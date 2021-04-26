@@ -30,7 +30,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
 import wget
+import shutil
 from absl import logging
+from pathlib import Path
+import multiprocessing as mp
 
 from oatomobile.core.dataset import Dataset
 from oatomobile.core.dataset import Episode
@@ -364,7 +367,9 @@ class CARLADataset(Dataset):
 
                     # Store to ouput directory.
                     np.savez_compressed(
-                        os.path.join(output_dir, "{}.npz".format(sequence[i])),
+                        Path(output_dir)
+                        .joinpath("{}.npz".format(sequence[i]))
+                        .as_posix(),
                         **observation,
                         player_future=player_future,
                         player_past=player_past,
@@ -373,6 +378,56 @@ class CARLADataset(Dataset):
                 except Exception as e:
                     if isinstance(e, KeyboardInterrupt):
                         sys.exit(0)
+
+    @staticmethod
+    def process_video(
+        dataset_dir: str,
+        output_dir: str,
+        future_length: int = 80,
+        past_length: int = 20,
+        num_frame_skips: int = 5,
+        num_jobs: int = 1,
+    ) -> None:
+        """Converts a video dataset to demonstrations for imitation learning.
+
+        Args:
+          dataset_dir: The full path to the raw dataset.
+          output_dir: The full path to the output directory.
+          future_length: The length of the future trajectory.
+          past_length: The length of the past trajectory.
+          num_frame_skips: The number of frames to skip.
+        """
+        from oatomobile.utils import carla as cutil
+
+        # Creates the necessary output directory.
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Iterate over all episodes.
+
+        all_episodes = os.listdir(dataset_dir)
+        chunk_size = len(all_episodes) // num_jobs
+        episode_chunks = [
+            all_episodes[idx : idx + chunk_size]
+            for idx in range(0, len(all_episodes), chunk_size)
+        ]
+
+        args = [
+            (
+                episode_chunks[idx],
+                dataset_dir,
+                output_dir,
+                future_length,
+                past_length,
+                num_frame_skips,
+                idx,
+                num_jobs,
+            )
+            for idx in range(num_jobs)
+        ]
+
+        p = mp.Pool(int(num_jobs))
+
+        p.map(process_episode, args)
 
     @staticmethod
     def plot_datum(
@@ -808,7 +863,9 @@ class CARLADataset(Dataset):
                 for m in metadata_files:
                     with m.open() as pfile:
                         metadata = pfile.readlines()
-                    metadata = {m.strip() + ".npz": idx for m in enumerate(metadata)}
+                    metadata = {
+                        f"{m.strip()}.npz": idx for idx, m in enumerate(metadata)
+                    }
                     self._episodes[m.parent.name] = metadata
 
             def __len__(self) -> int:
@@ -856,3 +913,110 @@ class CARLADataset(Dataset):
                 return sample
 
         return PyTorchDataset(dataset_dir, modalities, transform, mode)
+
+
+def process_episode(args):
+
+    (
+        episodes,
+        dataset_dir,
+        output_dir,
+        future_length,
+        past_length,
+        num_frame_skips,
+        group_number,
+        pool_size,
+    ) = args
+
+    pbar = tqdm.tqdm(episodes, position=group_number + 1, leave=True, ascii=True)
+    from oatomobile.utils import carla as cutil
+
+    for episode_token in pbar:
+        dest_episode_dir = Path(output_dir).joinpath(episode_token)
+        os.makedirs(dest_episode_dir.as_posix(), exist_ok=True)
+        pbar.set_description(f"{episode_token}")
+        # Initializes episode handler.
+        episode = Episode(parent_dir=dataset_dir, token=episode_token)
+        # Fetches all `.npz` files from the raw dataset.
+        try:
+            sequence = episode.fetch()
+        except FileNotFoundError:
+            continue
+
+        # Always keep `past_length+future_length+1` files open.
+        assert len(sequence) >= past_length + future_length + 1
+
+        all_observations = [episode.read_sample(sample_token=seq) for seq in sequence]
+
+        # ep_bar = tqdm.trange(
+        #     past_length,
+        #     len(sequence) - future_length,
+        #     num_frame_skips,
+        #     leave=False,
+        #     ascii=True,
+        #     position=pool_size + group_number + 1,
+        # )
+        # for i in ep_bar:
+        for i in range(
+            past_length,
+            len(sequence) - future_length,
+            num_frame_skips,
+        ):
+            try:
+                # Player context/observation.
+                # observation = episode.read_sample(sample_token=sequence[i])
+                observation = all_observations[i]
+                current_location = observation["location"]
+                current_rotation = observation["rotation"]
+
+                # Build past trajectory.
+                player_past = list()
+                for j in range(past_length, 0, -1):
+                    # past_location = episode.read_sample(
+                    #     sample_token=sequence[i - j],
+                    #     attr="location",
+                    # )
+                    past_location = all_observations[i - j]["location"]
+                    player_past.append(past_location)
+                player_past = np.asarray(player_past)
+                assert len(player_past.shape) == 2
+                player_past = cutil.world2local(
+                    current_location=current_location,
+                    current_rotation=current_rotation,
+                    world_locations=player_past,
+                )
+
+                # Build future trajectory.
+                player_future = list()
+                for j in range(1, future_length + 1):
+                    # future_location = episode.read_sample(
+                    #     sample_token=sequence[i + j],
+                    #     attr="location",
+                    # )
+                    future_location = all_observations[i + j]["location"]
+                    player_future.append(future_location)
+                player_future = np.asarray(player_future)
+                assert len(player_future.shape) == 2
+                player_future = cutil.world2local(
+                    current_location=current_location,
+                    current_rotation=current_rotation,
+                    world_locations=player_future,
+                )
+
+                # Store to ouput directory.
+                np.savez_compressed(
+                    dest_episode_dir.joinpath("{}.npz".format(sequence[i])).as_posix(),
+                    **observation,
+                    player_future=player_future,
+                    player_past=player_past,
+                )
+
+            except Exception as e:
+                print(f"Error processing {episode_token}, {e}")
+                if isinstance(e, KeyboardInterrupt):
+                    sys.exit(0)
+
+        shutil.copyfile(
+            Path(dataset_dir).joinpath(f"{episode_token}/lidar.mp4").as_posix(),
+            dest_episode_dir.joinpath("lidar.mp4").as_posix(),
+        )
