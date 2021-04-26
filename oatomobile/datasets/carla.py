@@ -387,6 +387,7 @@ class CARLADataset(Dataset):
         past_length: int = 20,
         num_frame_skips: int = 5,
         num_jobs: int = 1,
+        skip_exist: bool = False,
     ) -> None:
         """Converts a video dataset to demonstrations for imitation learning.
 
@@ -405,15 +406,19 @@ class CARLADataset(Dataset):
         # Iterate over all episodes.
 
         all_episodes = os.listdir(dataset_dir)
+
         chunk_size = len(all_episodes) // num_jobs
         episode_chunks = [
             all_episodes[idx : idx + chunk_size]
             for idx in range(0, len(all_episodes), chunk_size)
         ]
+        print(
+            f"Processing {len(all_episodes)} episodes in {list(map(len, episode_chunks))} {chunk_size} sized chunks"
+        )
 
         args = [
             (
-                episode_chunks[idx],
+                episodes,
                 dataset_dir,
                 output_dir,
                 future_length,
@@ -421,11 +426,12 @@ class CARLADataset(Dataset):
                 num_frame_skips,
                 idx,
                 num_jobs,
+                skip_exist,
             )
-            for idx in range(num_jobs)
+            for idx, episodes in enumerate(episode_chunks)
         ]
 
-        p = mp.Pool(int(num_jobs))
+        p = mp.Pool(len(args))
 
         p.map(process_episode, args)
 
@@ -815,6 +821,7 @@ class CARLADataset(Dataset):
     def as_torch_form_video(
         cls,
         dataset_dir: str,
+        episode_list_file: str,
         modalities: Sequence[str],
         transform: Optional[Callable[[Any], Any]] = None,
         mode: bool = False,
@@ -841,6 +848,7 @@ class CARLADataset(Dataset):
             def __init__(
                 self,
                 dataset_dir: str,
+                episode_list_file: str,
                 modalities: Sequence[str],
                 transform: Optional[Callable[[Any], Any]] = None,
                 mode: bool = False,
@@ -854,19 +862,27 @@ class CARLADataset(Dataset):
                 """
                 # Internalise hyperparameters.
                 self._modalities = modalities
-                self._npz_files = glob.glob(os.path.join(dataset_dir, "*.npz"))
+                self._npz_files = []
                 self._transform = transform
                 self._mode = mode
-                episodes = list(np.unique([Path(m).parent for m in self._npz_files]))
+                with open(episode_list_file) as pfile:
+                    episodes = [
+                        Path(dataset_dir).joinpath(m.strip()) for m in pfile.readlines()
+                    ]
+                # episodes = list(np.unique([Path(m).parent for m in self._npz_files]))
                 metadata_files = [e.joinpath("metadata") for e in episodes]
                 self._episodes = {}
-                for m in metadata_files:
-                    with m.open() as pfile:
-                        metadata = pfile.readlines()
-                    metadata = {
-                        f"{m.strip()}.npz": idx for idx, m in enumerate(metadata)
+                for meta in metadata_files:
+                    with meta.open() as pfile:
+                        sample_list = pfile.readlines()
+                    npz_map = {
+                        f"{sample}.npz": idx for idx, sample in enumerate(sample_list)
                     }
-                    self._episodes[m.parent.name] = metadata
+                    npz_files = [
+                        meta.parent.joinpath(f"{sample}.npz") for sample in sample_list
+                    ]
+                    self._npz_files.extend(npz_files)
+                    self._episodes[meta.parent.name] = npz_map
 
             def __len__(self) -> int:
                 """Returns the size of the dataset."""
@@ -882,7 +898,7 @@ class CARLADataset(Dataset):
                   The datum in `NumPy`-friendly format.
                 """
                 # Loads datum from dataset.
-                fname = Path(self._npz_files[idx])
+                fname = self._npz_files[idx]
                 sample = cls.load_datum(
                     fname=fname.as_posix(),
                     modalities=self._modalities,
@@ -912,7 +928,9 @@ class CARLADataset(Dataset):
                     }
                 return sample
 
-        return PyTorchDataset(dataset_dir, modalities, transform, mode)
+        return PyTorchDataset(
+            dataset_dir, episode_list_file, modalities, transform, mode
+        )
 
 
 def process_episode(args):
@@ -926,15 +944,21 @@ def process_episode(args):
         num_frame_skips,
         group_number,
         pool_size,
+        skip_exist,
     ) = args
 
     pbar = tqdm.tqdm(episodes, position=group_number + 1, leave=True, ascii=True)
     from oatomobile.utils import carla as cutil
 
     for episode_token in pbar:
-        dest_episode_dir = Path(output_dir).joinpath(episode_token)
-        os.makedirs(dest_episode_dir.as_posix(), exist_ok=True)
         pbar.set_description(f"{episode_token}")
+        dest_episode_dir = Path(output_dir).joinpath(episode_token)
+
+        if dest_episode_dir.exists() and skip_exist:
+            continue
+
+        dest_episode_dir.mkdir(exist_ok=True)
+
         # Initializes episode handler.
         episode = Episode(parent_dir=dataset_dir, token=episode_token)
         # Fetches all `.npz` files from the raw dataset.
@@ -944,7 +968,8 @@ def process_episode(args):
             continue
 
         # Always keep `past_length+future_length+1` files open.
-        assert len(sequence) >= past_length + future_length + 1
+        if len(sequence) < past_length + future_length + 1:
+            continue
 
         all_observations = [episode.read_sample(sample_token=seq) for seq in sequence]
 

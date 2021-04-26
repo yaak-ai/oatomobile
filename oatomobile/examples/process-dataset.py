@@ -3,13 +3,13 @@ from pathlib import Path
 from oatomobile.datasets.carla import CARLADataset
 
 
-def process_dataset(source, destination, is_video, nj):
+def process_dataset(source, destination, is_video, nj, skip):
 
     dataset = CARLADataset(id="raw")
 
     fn = dataset.process_video if is_video else dataset.process
 
-    fn(source.as_posix(), destination.as_posix(), num_jobs=nj)
+    fn(source.as_posix(), destination.as_posix(), num_jobs=nj, skip_exist=skip)
 
 
 if __name__ == "__main__":
@@ -25,6 +25,13 @@ if __name__ == "__main__":
         help="Its a video dataset",
     )
     parser.add_argument(
+        "-x",
+        "--skip",
+        action="store_true",
+        default=False,
+        help="Skip if already processed",
+    )
+    parser.add_argument(
         "-n",
         "--nj",
         dest="nj",
@@ -35,4 +42,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    process_dataset(args.source, args.destination, args.video, args.nj)
+    process_dataset(args.source, args.destination, args.video, args.nj, args.skip)
