@@ -155,10 +155,12 @@ def lidar_2darray_to_rgb(array: np.ndarray) -> np.ndarray:
     """
     # Get array shapes.
     W, H, C = array.shape
-    assert C == 2
-
+    if C == 2:
+        img = np.c_[array, np.zeros(shape=(W, H, 1))]
+    if C == 3:
+        img = array
     # Select channel.
-    img = np.c_[array, np.zeros(shape=(W, H, 1))]
+
     # Convert to 8-bit image.
     img = 255 * (img / img.max())
     return img

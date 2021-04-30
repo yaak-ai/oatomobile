@@ -1763,6 +1763,7 @@ class CARLASimulator(simulator.Simulator):
         fps: int = defaults.SIMULATOR_FPS,
         client_timeout: float = defaults.CARLA_CLIENT_TIMEOUT,
         port: int = 2000,
+        tm_port: int = 8000,
     ) -> None:
         """Constructs a CARLA simulator wrapper.
 
@@ -1788,6 +1789,7 @@ class CARLASimulator(simulator.Simulator):
         self._sensors = sensors
         self._fps = fps
         self._port = port
+        self._tm_port = tm_port
         self._client_timeout = client_timeout
         self._num_vehicles = num_vehicles
         self._num_pedestrians = num_pedestrians
@@ -1879,7 +1881,7 @@ class CARLASimulator(simulator.Simulator):
             client_timeout=self._client_timeout,
         )
         # Traffic Manager
-        self._tm = cutil.setup_traffic(self._client, port=self._port + 6000)
+        self._tm = cutil.setup_traffic(self._client, port=self._tm_port)
         self._frame0 = int(self._frame)
         self._dt = self._world.get_settings().fixed_delta_seconds
 

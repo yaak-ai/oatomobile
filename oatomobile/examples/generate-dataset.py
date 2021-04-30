@@ -5,7 +5,9 @@ from oatomobile.datasets.carla import CARLADataset
 from oatomobile.simulators.carla import defaults
 
 
-def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination, port):
+def generate_dataset(
+    town, num_pedestrians, num_vehicles, num_steps, destination, port, tm_port
+):
 
     dataset = CARLADataset(id="raw")
 
@@ -43,6 +45,7 @@ def generate_dataset(town, num_pedestrians, num_vehicles, num_steps, destination
         num_steps,
         sensors=SENSORS,
         port=port,
+        tm_port=tm_port,
     )
 
 
@@ -67,6 +70,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("-d", "--destination", help="Save path", type=Path)
     parser.add_argument("-p", "--port", help="Carla Port", type=int, default=2000)
+    parser.add_argument(
+        "-m", "--tm_port", help="Carla Traffic Manager Port", type=int, default=8000
+    )
 
     args = parser.parse_args()
 
@@ -77,4 +83,5 @@ if __name__ == "__main__":
         args.steps,
         args.destination,
         args.port,
+        args.tm_port,
     )

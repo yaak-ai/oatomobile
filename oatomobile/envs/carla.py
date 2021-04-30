@@ -54,7 +54,8 @@ class CARLAEnv(Env):
         sensors: Sequence[str] = defaults.CARLA_SENSORS,
         num_vehicles: int = 0,
         num_pedestrians: int = 0,
-        port: int = 2000
+        port: int = 2000,
+        tm_port: int = 8000,
     ) -> None:
         """Constructs a CARLA simulator-based OpenAI gym-compatible environment.
 
@@ -101,6 +102,7 @@ class CARLAEnv(Env):
             num_vehicles=num_vehicles,
             num_pedestrians=num_pedestrians,
             port=port,
+            tm_port=tm_port,
         )
 
     @property
@@ -141,7 +143,7 @@ class CARLANavEnv(CARLAEnv):
         sensors: Sequence[str] = defaults.CARLA_SENSORS,
         num_vehicles: int = 0,
         num_pedestrians: int = 0,
-        proximity_destination_threshold: float = 7.5
+        proximity_destination_threshold: float = 7.5,
     ) -> None:
         """Constructs a CARLA simulator-based OpenAI gym-compatible environment.
 
@@ -215,7 +217,7 @@ class LaneInvasionsMetric(Metric):
         reward: float,
         new_observations: Observations,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """Records transition and update evaluation."""
         if new_observations["lane_invasion"] > 0:
@@ -257,7 +259,7 @@ class CollisionsMetric(Metric):
         reward: float,
         new_observations: Observations,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """Records transition and update evaluation."""
         if new_observations["collision"] > 0:
@@ -300,7 +302,7 @@ class DistanceMetric(Metric):
         reward: float,
         new_observations: Observations,
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         """Records transition and update evaluation."""
         self.value += np.linalg.norm(  # Euclidean distance in meters

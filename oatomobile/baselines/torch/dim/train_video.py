@@ -80,6 +80,11 @@ flags.DEFINE_integer(
     default=4,
     help="The numbers of time-steps to keep from the target, with downsampling.",
 )
+flags.DEFINE_integer(
+    name="in_channels",
+    default=2,
+    help="Number of channels in the input sensor data",
+)
 flags.DEFINE_float(
     name="weight_decay",
     default=0.0,
@@ -107,6 +112,7 @@ def main(argv):
     learning_rate = FLAGS.learning_rate
     save_model_frequency = FLAGS.save_model_frequency
     num_timesteps_to_keep = FLAGS.num_timesteps_to_keep
+    in_channels = FLAGS.in_channels
     weight_decay = FLAGS.weight_decay
     clip_gradients = FLAGS.clip_gradients
     noise_level = 1e-2
@@ -125,7 +131,9 @@ def main(argv):
 
     # Initializes the model and its optimizer.
     output_shape = [num_timesteps_to_keep, 2]
-    model = ImitativeModel(output_shape=output_shape).to(device)
+    model = ImitativeModel(output_shape=output_shape, in_channels=in_channels).to(
+        device
+    )
     optimizer = optim.Adam(
         model.parameters(),
         lr=learning_rate,
@@ -175,7 +183,7 @@ def main(argv):
     )
     dataloader_val = torch.utils.data.DataLoader(
         dataset_val,
-        batch_size=batch_size * 5,
+        batch_size=batch_size * 2,
         shuffle=True,
         num_workers=50,
     )
@@ -240,7 +248,7 @@ def main(argv):
         """Performs an epoch of gradient descent optimization on `dataloader`."""
         model.train()
         loss = 0.0
-        with tqdm.tqdm(dataloader) as pbar:
+        with tqdm.tqdm(dataloader, ascii=True) as pbar:
             for batch in pbar:
                 # Prepares the batch.
                 batch = transform(batch)
@@ -277,7 +285,7 @@ def main(argv):
         """Performs an evaluation of the `model` on the `dataloader."""
         model.eval()
         loss = 0.0
-        with tqdm.tqdm(dataloader) as pbar:
+        with tqdm.tqdm(dataloader, ascii=True) as pbar:
             for batch in pbar:
                 # Prepares the batch.
                 batch = transform(batch)

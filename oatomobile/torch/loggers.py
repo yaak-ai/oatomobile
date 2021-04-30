@@ -35,107 +35,108 @@ COLORS = [
 
 
 class TensorBoardLogger:
-  """A simple `Pytorch`-friendly `TensorBoard` wrapper."""
+    """A simple `Pytorch`-friendly `TensorBoard` wrapper."""
 
-  def __init__(
-      self,
-      log_dir: str,
-  ) -> None:
-    """Constructs a simgple `TensorBoard` wrapper."""
-    # Makes sure output directories exist.
-    log_dir_train = os.path.join(log_dir, "train")
-    log_dir_val = os.path.join(log_dir, "val")
-    os.makedirs(log_dir_train, exist_ok=True)
-    os.makedirs(log_dir_val, exist_ok=True)
+    def __init__(
+        self,
+        log_dir: str,
+    ) -> None:
+        """Constructs a simgple `TensorBoard` wrapper."""
+        # Makes sure output directories exist.
+        log_dir_train = os.path.join(log_dir, "train")
+        log_dir_val = os.path.join(log_dir, "val")
+        os.makedirs(log_dir_train, exist_ok=True)
+        os.makedirs(log_dir_val, exist_ok=True)
 
-    # Initialises the `TensorBoard` writters.
-    self._summary_writter_train = SummaryWriter(log_dir=log_dir_train)
-    self._summary_writter_val = SummaryWriter(log_dir=log_dir_val)
+        # Initialises the `TensorBoard` writters.
+        self._summary_writter_train = SummaryWriter(log_dir=log_dir_train)
+        self._summary_writter_val = SummaryWriter(log_dir=log_dir_val)
 
-  def log(
-      self,
-      split: str,
-      loss: float,
-      global_step: int,
-      overhead_features: Optional[types.Array] = None,
-      predictions: Optional[types.Array] = None,
-      ground_truth: Optional[types.Array] = None,
-  ) -> None:
-    """Logs the scalar loss and visualizes predictions for qualitative
-    inspection."""
+    def log(
+        self,
+        split: str,
+        loss: float,
+        global_step: int,
+        overhead_features: Optional[types.Array] = None,
+        predictions: Optional[types.Array] = None,
+        ground_truth: Optional[types.Array] = None,
+    ) -> None:
+        """Logs the scalar loss and visualizes predictions for qualitative
+        inspection."""
 
-    if split == "train":
-      summary_writter = self._summary_writter_train
-    elif split == "val":
-      summary_writter = self._summary_writter_val
-    else:
-      raise ValueError("Unrecognised split={} was passed".format(split))
+        if split == "train":
+            summary_writter = self._summary_writter_train
+        elif split == "val":
+            summary_writter = self._summary_writter_val
+        else:
+            raise ValueError("Unrecognised split={} was passed".format(split))
 
-    # Logs the training loss.
-    summary_writter.add_scalar(
-        tag="loss",
-        scalar_value=loss,
-        global_step=global_step,
-    )
-
-    if overhead_features is not None:
-      # Visualizes the predictions.
-      overhead_features = np.transpose(overhead_features,
-                                       (0, 2, 3, 1))  # to NHWC
-      raw = list()
-      for _, (
-          o_t,
-          p_t,
-          g_t,
-      ) in enumerate(zip(
-          overhead_features,
-          predictions,
-          ground_truth,
-      )):
-        fig, ax = plt.subplots(figsize=(3.0, 3.0))
-        bev_meters = 25.0
-        # Overhead features.
-        ax.imshow(
-            o_t.squeeze()[..., 0],
-            extent=(-bev_meters, bev_meters, bev_meters, -bev_meters),
-            cmap="gray",
+        # Logs the training loss.
+        summary_writter.add_scalar(
+            tag="loss",
+            scalar_value=loss,
+            global_step=global_step,
         )
-        # Ground truth.
-        ax.plot(
-            g_t[..., 1],
-            -g_t[..., 0],
-            marker="o",
-            markersize=4,
-            color=COLORS[1],
-            alpha=1.0,
-            label="ground truth",
-        )
-        # Model prediction.
-        ax.plot(
-            p_t[..., 1],
-            -p_t[..., 0],
-            marker="o",
-            markersize=4,
-            color=COLORS[0],
-            alpha=0.75,
-            label="predictions",
-        )
-        ax.legend()
-        ax.set(frame_on=False)
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
-        # Convert `matplotlib` canvas to `NumPy` RGB.
-        fig.canvas.draw()
-        w, h = fig.canvas.get_width_height()
-        buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
-        buf.shape = (w, h, 4)
-        buf = np.roll(buf, 3, axis=2)
-        raw.append(buf)
-        plt.close(fig)
-      raw = np.reshape(np.asarray(raw), (-1, w, h, 4))
-      summary_writter.add_images(
-          tag="examples",
-          img_tensor=raw[..., :3],
-          global_step=global_step,
-          dataformats="NHWC",
-      )
+
+        if overhead_features is not None:
+            # Visualizes the predictions.
+            overhead_features = np.transpose(overhead_features, (0, 2, 3, 1))  # to NHWC
+            raw = list()
+            _, _, _, C = overhead_features.shape
+            channels = 1 if not C == 3 else list(range(3))[::-1]
+            cmap = "gray" if channels == 1 else "plasma"
+            print(channels, cmap)
+            for _, (o_t, p_t, g_t,) in enumerate(
+                zip(
+                    overhead_features,
+                    predictions,
+                    ground_truth,
+                )
+            ):
+                fig, ax = plt.subplots(figsize=(3.0, 3.0))
+                bev_meters = 25.0
+                # Overhead features.
+                ax.imshow(
+                    o_t.squeeze()[..., channels].astype(np.int),
+                    extent=(-bev_meters, bev_meters, bev_meters, -bev_meters),
+                    cmap=cmap,
+                )
+                # Ground truth.
+                ax.plot(
+                    g_t[..., 1],
+                    -g_t[..., 0],
+                    marker="o",
+                    markersize=4,
+                    color=COLORS[1],
+                    alpha=1.0,
+                    label="ground truth",
+                )
+                # Model prediction.
+                ax.plot(
+                    p_t[..., 1],
+                    -p_t[..., 0],
+                    marker="o",
+                    markersize=4,
+                    color=COLORS[0],
+                    alpha=0.75,
+                    label="predictions",
+                )
+                ax.legend()
+                ax.set(frame_on=False)
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                # Convert `matplotlib` canvas to `NumPy` RGB.
+                fig.canvas.draw()
+                w, h = fig.canvas.get_width_height()
+                buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+                buf.shape = (w, h, 4)
+                buf = np.roll(buf, 3, axis=2)
+                raw.append(buf)
+                plt.close(fig)
+            raw = np.reshape(np.asarray(raw), (-1, w, h, 4))
+            summary_writter.add_images(
+                tag="examples",
+                img_tensor=raw[..., :3],
+                global_step=global_step,
+                dataformats="NHWC",
+            )

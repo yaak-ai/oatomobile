@@ -24,26 +24,27 @@ def downsample_target(
     player_future: torch.Tensor,
     num_timesteps_to_keep: int,
 ) -> torch.Tensor:
-  """Downsamples the target sequence."""
-  _, T, _ = player_future.shape
-  increments = T // num_timesteps_to_keep
-  player_future = player_future[:, 0::increments, :]
-  return player_future
+    """Downsamples the target sequence."""
+    _, T, _ = player_future.shape
+    increments = T // num_timesteps_to_keep
+    player_future = player_future[:, 0::increments, :]
+    return player_future
 
 
 def downsample_visual_features(
     visual_features: torch.Tensor,
     output_shape: types.Shape,
 ) -> torch.Tensor:
-  """Downsamples the visual features."""
-  return F.interpolate(
-      visual_features,
-      size=output_shape,
-      mode="bilinear",
-      align_corners=True,
-  )
+    """Downsamples the visual features."""
+    return F.interpolate(
+        visual_features,
+        size=output_shape,
+        mode="bilinear",
+        align_corners=True,
+    )
 
 
 def transpose_visual_features(visual_features: torch.Tensor) -> torch.Tensor:
-  """Transposes the visual features."""
-  return torch.transpose(visual_features, dim0=2, dim1=3)  # pylint: disable=no-member
+    """Transposes the visual features."""
+    # return torch.transpose(visual_features, dim0=2, dim1=3)  # pylint: disable=no-member
+    return visual_features

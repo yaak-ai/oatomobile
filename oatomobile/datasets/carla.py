@@ -31,12 +31,16 @@ import numpy as np
 import tqdm
 import wget
 import shutil
+import tqdm
+import cv2
 from absl import logging
 from pathlib import Path
 import multiprocessing as mp
 
 from oatomobile.core.dataset import Dataset
 from oatomobile.core.dataset import Episode
+
+# cv2.setNumThreads(1)
 
 
 class CARLADataset(Dataset):
@@ -142,7 +146,9 @@ class CARLADataset(Dataset):
                 sample[attr] = sample[attr].astype(dtype)
                 if len(sample[attr].shape) == 3 and dataformat == "CHW":
                     # Converts from HWC to CHW format.
-                    sample[attr] = np.transpose(sample[attr], (2, 0, 1))
+                    sample[attr] = np.flipud(sample[attr])
+                    # sample[attr] = np.fliplr(sample[attr])
+                    sample[attr] = np.transpose(sample[attr].copy(), (2, 0, 1))
 
         # Appends `mode` attribute where `{0: FORWARD, 1: STOP, 2: TURN}`.
         if mode and "player_future" in sample:
@@ -191,6 +197,7 @@ class CARLADataset(Dataset):
         ),
         render: bool = False,
         port: int = 2000,
+        tm_port: int = 8000,
     ) -> None:
         """Collects autopilot demonstrations for a single episode on CARLA.
 
@@ -230,6 +237,7 @@ class CARLADataset(Dataset):
             num_vehicles=num_vehicles,
             num_pedestrians=num_pedestrians,
             port=port,
+            tm_port=tm_port,
         )
         # Terminates episode if a collision occurs.
         env = TerminateOnCollisionWrapper(env)
@@ -467,12 +475,13 @@ class CARLADataset(Dataset):
         # Draws LIDAR.
         if "lidar" in datum:
             bev_meters = 25.0
-            # lidar = gutil.lidar_2darray_to_rgb(datum["lidar"])
+            # arr = gutil.lidar_2darray_to_rgb(datum["lidar"])
             arr = datum["lidar"]
             W, H, C = arr.shape
             assert C == 2
             # Select channel.
             lidar = np.c_[arr, np.zeros(shape=(W, H, 1))]
+            # lidar = arr
             fig, ax = plt.subplots(figsize=(3.0, 3.0))
             ax.imshow(
                 np.transpose(lidar, (1, 0, 2)),
@@ -491,112 +500,116 @@ class CARLADataset(Dataset):
         # Draws first person camera-view.
         if "front_camera_rgb" in datum:
             front_camera_rgb = datum["front_camera_rgb"]
-            fig, ax = plt.subplots(figsize=(3.0, 3.0))
-            ax.imshow(front_camera_rgb)
-            ax.set(frame_on=False)
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-            fig.savefig(
-                os.path.join(output_dir, "front_camera_rgb.png"),
-                bbox_inches="tight",
-                pad_inches=0,
-                transparent=True,
-            )
+            if not front_camera_rgb.size == 0:
+
+                fig, ax = plt.subplots(figsize=(3.0, 3.0))
+                ax.imshow(front_camera_rgb)
+                ax.set(frame_on=False)
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                fig.savefig(
+                    os.path.join(output_dir, "front_camera_rgb.png"),
+                    bbox_inches="tight",
+                    pad_inches=0,
+                    transparent=True,
+                )
 
         # Draws bird-view camera.
         if "bird_view_camera_cityscapes" in datum:
             bev_meters = 25.0
             bird_view_camera_cityscapes = datum["bird_view_camera_cityscapes"]
-            fig, ax = plt.subplots(figsize=(3.0, 3.0))
-            ax.imshow(
-                bird_view_camera_cityscapes,
-                extent=(-bev_meters, bev_meters, bev_meters, -bev_meters),
-            )
-            # Draw past if available.
-            if "player_past" in datum:
-                player_past = datum["player_past"]
-                ax.plot(
-                    player_past[..., 1],
-                    -player_past[..., 0],
-                    marker="x",
-                    markersize=4,
-                    color=COLORS[0],
-                    alpha=0.15,
+            if not bird_view_camera_cityscapes.size == 0:
+                fig, ax = plt.subplots(figsize=(3.0, 3.0))
+                ax.imshow(
+                    bird_view_camera_cityscapes,
+                    extent=(-bev_meters, bev_meters, bev_meters, -bev_meters),
                 )
-            # Draws future if available.
-            if "player_future" in datum:
-                player_future = datum["player_future"]
-                ax.plot(
-                    player_future[..., 1],
-                    -player_future[..., 0],
-                    marker="o",
-                    markersize=4,
-                    color=COLORS[1],
-                    alpha=0.15,
+                # Draw past if available.
+                if "player_past" in datum:
+                    player_past = datum["player_past"]
+                    ax.plot(
+                        player_past[..., 1],
+                        -player_past[..., 0],
+                        marker="x",
+                        markersize=4,
+                        color=COLORS[0],
+                        alpha=0.15,
+                    )
+                # Draws future if available.
+                if "player_future" in datum:
+                    player_future = datum["player_future"]
+                    ax.plot(
+                        player_future[..., 1],
+                        -player_future[..., 0],
+                        marker="o",
+                        markersize=4,
+                        color=COLORS[1],
+                        alpha=0.15,
+                    )
+                # Draws goals if available.
+                if "goal" in datum:
+                    goal = datum["goal"]
+                    ax.plot(
+                        goal[..., 1],
+                        -goal[..., 0],
+                        marker="D",
+                        markersize=6,
+                        color=COLORS[2],
+                        linestyle="None",
+                        alpha=0.25,
+                        label=r"$\mathcal{G}$",
+                    )
+                ax.set(frame_on=False)
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                fig.savefig(
+                    os.path.join(output_dir, "bird_view_camera_cityscapes.png"),
+                    bbox_inches="tight",
+                    pad_inches=0,
+                    transparent=True,
                 )
-            # Draws goals if available.
-            if "goal" in datum:
-                goal = datum["goal"]
-                ax.plot(
-                    goal[..., 1],
-                    -goal[..., 0],
-                    marker="D",
-                    markersize=6,
-                    color=COLORS[2],
-                    linestyle="None",
-                    alpha=0.25,
-                    label=r"$\mathcal{G}$",
-                )
-            ax.set(frame_on=False)
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-            fig.savefig(
-                os.path.join(output_dir, "bird_view_camera_cityscapes.png"),
-                bbox_inches="tight",
-                pad_inches=0,
-                transparent=True,
-            )
 
         # Draws bird-view camera.
         if "bird_view_camera_rgb" in datum:
             bev_meters = 25.0
             bird_view_camera_rgb = datum["bird_view_camera_rgb"]
-            fig, ax = plt.subplots(figsize=(3.0, 3.0))
-            ax.imshow(
-                bird_view_camera_rgb,
-                extent=(-bev_meters, bev_meters, bev_meters, -bev_meters),
-            )
-            # Draw past if available.
-            if "player_past" in datum:
-                player_past = datum["player_past"]
-                ax.plot(
-                    player_past[..., 1],
-                    -player_past[..., 0],
-                    marker="x",
-                    markersize=4,
-                    color=COLORS[0],
-                    alpha=0.15,
+            if not bird_view_camera_rgb.size == 0:
+                fig, ax = plt.subplots(figsize=(3.0, 3.0))
+                ax.imshow(
+                    bird_view_camera_rgb,
+                    extent=(-bev_meters, bev_meters, bev_meters, -bev_meters),
                 )
-            # Draws future if available.
-            if "player_future" in datum:
-                player_future = datum["player_future"]
-                ax.plot(
-                    player_future[..., 1],
-                    -player_future[..., 0],
-                    marker="o",
-                    markersize=4,
-                    color=COLORS[1],
-                    alpha=0.15,
+                # Draw past if available.
+                if "player_past" in datum:
+                    player_past = datum["player_past"]
+                    ax.plot(
+                        player_past[..., 1],
+                        -player_past[..., 0],
+                        marker="x",
+                        markersize=4,
+                        color=COLORS[0],
+                        alpha=0.15,
+                    )
+                # Draws future if available.
+                if "player_future" in datum:
+                    player_future = datum["player_future"]
+                    ax.plot(
+                        player_future[..., 1],
+                        -player_future[..., 0],
+                        marker="o",
+                        markersize=4,
+                        color=COLORS[1],
+                        alpha=0.15,
+                    )
+                ax.set(frame_on=False)
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                fig.savefig(
+                    os.path.join(output_dir, "bird_view_camera_rgb.png"),
+                    bbox_inches="tight",
+                    pad_inches=0,
+                    transparent=True,
                 )
-            ax.set(frame_on=False)
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-            fig.savefig(
-                os.path.join(output_dir, "bird_view_camera_rgb.png"),
-                bbox_inches="tight",
-                pad_inches=0,
-                transparent=True,
-            )
 
     @classmethod
     def plot_coverage(
@@ -872,17 +885,24 @@ class CARLADataset(Dataset):
                 # episodes = list(np.unique([Path(m).parent for m in self._npz_files]))
                 metadata_files = [e.joinpath("metadata") for e in episodes]
                 self._episodes = {}
-                for meta in metadata_files:
+                print(f"Reading episodes from {episode_list_file}")
+                for meta in tqdm.tqdm(metadata_files, ascii=True):
                     with meta.open() as pfile:
-                        sample_list = pfile.readlines()
+                        sample_list = [s.strip() for s in pfile.readlines()]
                     npz_map = {
                         f"{sample}.npz": idx for idx, sample in enumerate(sample_list)
                     }
                     npz_files = [
-                        meta.parent.joinpath(f"{sample}.npz") for sample in sample_list
+                        sample
+                        for sample in meta.parent.iterdir()
+                        if sample.suffix == ".npz"
                     ]
                     self._npz_files.extend(npz_files)
                     self._episodes[meta.parent.name] = npz_map
+
+                print(
+                    f"Found {len(self._npz_files)} training samples in {episode_list_file}"
+                )
 
             def __len__(self) -> int:
                 """Returns the size of the dataset."""
@@ -905,22 +925,27 @@ class CARLADataset(Dataset):
                     mode=self._mode,
                     dataformat="CHW",
                 )
-                fidx = self._episodes[fname.parent.name][fname.name]
 
+                # fidx = self._episodes[fname.parent.name][fname.name]
                 # Open seek close
-                vid = cv2.VideoCapture(fname.parent.joinpath("lidar.mp4"))
-                vid.set(cv2.CAP_PROP_POS_FRAMES, fidx)
-                ret, lidar = vid.read()
-                vid.close()
-
-                # BGR -> RGB (if this needed) + HWC -> CHW
-                sample["lidar"] = np.transpose(lidar[:, :, (2, 1, 0)], (2, 0, 1))
+                # vid = cv2.VideoCapture(fname.parent.joinpath("lidar.mp4").as_posix())
+                # vid.set(cv2.CAP_PROP_POS_FRAMES, fidx)
+                # ret, lidar = vid.read()
+                # vid.release()
+                # # lidar = np.zeros([200, 200, 3])
+                #
+                # # take last two channels from BGR
+                # lidar = lidar[:, :, (1, 2)]
+                # # HWC -> CHW
+                # lidar = np.transpose(lidar, (2, 0, 1))
+                # sample["lidar"] = lidar.astype(np.float32)
 
                 # Filters out non-array keys.
                 for key in list(sample):
                     if not isinstance(sample[key], np.ndarray):
                         sample.pop(key)
 
+                # sample["file"] = fname
                 # Applies (optional) transformation to all values.
                 if self._transform is not None:
                     sample = {
@@ -972,6 +997,19 @@ def process_episode(args):
             continue
 
         all_observations = [episode.read_sample(sample_token=seq) for seq in sequence]
+
+        vid = cv2.VideoCapture(
+            Path(dataset_dir).joinpath(f"{episode_token}/lidar.mp4").as_posix()
+        )
+        all_frames = [vid.read()[1] for _ in range(len(sequence))]
+        vid.release()
+
+        for idx, obs in enumerate(all_observations):
+            # last two channels BGR
+            lidar = all_frames[idx]
+            lidar = np.flipud(lidar)
+            # lidar = np.fliplr(lidar)
+            obs["lidar"] = lidar
 
         # ep_bar = tqdm.trange(
         #     past_length,
@@ -1041,7 +1079,7 @@ def process_episode(args):
                 if isinstance(e, KeyboardInterrupt):
                     sys.exit(0)
 
-        shutil.copyfile(
-            Path(dataset_dir).joinpath(f"{episode_token}/lidar.mp4").as_posix(),
-            dest_episode_dir.joinpath("lidar.mp4").as_posix(),
-        )
+        # shutil.copyfile(
+        #     Path(dataset_dir).joinpath(f"{episode_token}/lidar.mp4").as_posix(),
+        #     dest_episode_dir.joinpath("lidar.mp4").as_posix(),
+        # )
