@@ -415,7 +415,10 @@ class LIDARSensor(simulator.Sensor):
                 if data.frame == frame:
                     break
             # Processes the raw sensor data to a RGB array.
-            return cutil.carla_lidar_measurement_to_ndarray(data)
+            lidar = cutil.carla_lidar_measurement_to_ndarray(data)
+            # flip up down weird carla bug that lidar image is inverted on x-axis
+            lidar = np.flipud(lidar)
+            return lidar
         except queue.Empty:
             logging.debug(
                 "The queue of {} sensor was empty, returns a random observation".format(

@@ -229,7 +229,7 @@ def make_dashboard(
         # Render overhead LIDAR reading.
         ob_lidar_rgb = ndarray_to_pygame_surface(
             lidar_2darray_to_rgb(array=observations.get("lidar")),
-            swapaxes=False,
+            swapaxes=True,
         )
         display.blit(ob_lidar_rgb, (ada_width, 0))
         ada_width = ada_width + ob_lidar_rgb.get_width()

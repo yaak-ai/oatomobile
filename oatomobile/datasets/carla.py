@@ -146,7 +146,7 @@ class CARLADataset(Dataset):
                 sample[attr] = sample[attr].astype(dtype)
                 if len(sample[attr].shape) == 3 and dataformat == "CHW":
                     # Converts from HWC to CHW format.
-                    sample[attr] = np.flipud(sample[attr])
+                    # sample[attr] = np.flipud(sample[attr])
                     # sample[attr] = np.fliplr(sample[attr])
                     sample[attr] = np.transpose(sample[attr].copy(), (2, 0, 1))
 
@@ -926,20 +926,6 @@ class CARLADataset(Dataset):
                     dataformat="CHW",
                 )
 
-                # fidx = self._episodes[fname.parent.name][fname.name]
-                # Open seek close
-                # vid = cv2.VideoCapture(fname.parent.joinpath("lidar.mp4").as_posix())
-                # vid.set(cv2.CAP_PROP_POS_FRAMES, fidx)
-                # ret, lidar = vid.read()
-                # vid.release()
-                # # lidar = np.zeros([200, 200, 3])
-                #
-                # # take last two channels from BGR
-                # lidar = lidar[:, :, (1, 2)]
-                # # HWC -> CHW
-                # lidar = np.transpose(lidar, (2, 0, 1))
-                # sample["lidar"] = lidar.astype(np.float32)
-
                 # Filters out non-array keys.
                 for key in list(sample):
                     if not isinstance(sample[key], np.ndarray):
@@ -1007,6 +993,8 @@ def process_episode(args):
         for idx, obs in enumerate(all_observations):
             # last two channels BGR
             lidar = all_frames[idx]
+            # Flipping lidar image here so we dont have
+            # to do it during training/inference
             lidar = np.flipud(lidar)
             # lidar = np.fliplr(lidar)
             obs["lidar"] = lidar

@@ -52,6 +52,7 @@ class ImitativeModel(nn.Module):
 
         # The convolutional encoder model.
         self._encoder = MobileNetV2(num_classes=128, in_channels=in_channels)
+        self._in_channels = in_channels
 
         # Merges the encoded features and the vector inputs.
         self._merger = MLP(
@@ -216,6 +217,8 @@ class ImitativeModel(nn.Module):
         traffic_light_state = context.get("traffic_light_state")
 
         # Encodes the visual input.
+        # BCHW -> take first self._in_channels channels
+        visual_features = visual_features[:, range(self._in_channels), :, :]
         visual_features = self._encoder(visual_features)
 
         # Merges visual input logits and vector inputs.
@@ -260,11 +263,9 @@ class ImitativeModel(nn.Module):
 
         # Preprocesses the visual features.
         if "visual_features" in sample:
-            sample["visual_features"] = transforms.transpose_visual_features(
-                transforms.downsample_visual_features(
-                    visual_features=sample["visual_features"],
-                    output_shape=(100, 100),
-                )
+            sample["visual_features"] = transforms.downsample_visual_features(
+                visual_features=sample["visual_features"],
+                output_shape=(100, 100),
             )
 
         return sample

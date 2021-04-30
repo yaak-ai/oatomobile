@@ -26,17 +26,31 @@ def run_agent(
     in_channels=2,
 ):
     # Initializes a CARLA environment.
+    CARLA_SENSORS = (
+        "goal",
+        "lidar",
+        "bird_view_camera_rgb",
+        "bird_view_camera_cityscapes",
+        "control",
+        "location",
+        "rotation",
+        "velocity",
+        "is_at_traffic_light",
+        "traffic_light_state",
+    )
     env = oatomobile.envs.CARLAEnv(
         town=town,
         num_vehicles=num_vehicles,
         num_pedestrians=num_pedestrians,
         port=port,
         tm_port=tm_port,
+        sensors=CARLA_SENSORS,
     )
     if save_path is not None:
         env = oatomobile.MonitorWrapper(env, output_fname=save_path)
 
     # Makes an initial observation.
+    # obs is in RGB space if using 2 channels use first two
     obs = env.reset()
     done = False
 
@@ -44,7 +58,8 @@ def run_agent(
     model.load_state_dict(torch.load(ckpt))
     model.eval()
 
-    agent = AGENT_LIST[agent](environment=env, model=model, length=length)
+    # agent = AGENT_LIST[agent](environment=env, model=model, length=length)
+    agent = AGENT_LIST[agent](environment=env, model=model)
 
     while not done:
         # Selects a random action.

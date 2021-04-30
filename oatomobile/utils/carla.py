@@ -228,7 +228,6 @@ def carla_lidar_measurement_to_ndarray(
     ]
 
     features = np.stack(features, axis=-1)
-    features = np.flipud(features)
     return (255 * features).astype(np.uint8)
 
 
