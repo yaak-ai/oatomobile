@@ -145,9 +145,8 @@ class CARLADataset(Dataset):
                 # Casts value to same type.
                 sample[attr] = sample[attr].astype(dtype)
                 if len(sample[attr].shape) == 3 and dataformat == "CHW":
-                    # Converts from HWC to CHW format.
-                    # sample[attr] = np.flipud(sample[attr])
-                    # sample[attr] = np.fliplr(sample[attr])
+                    # Converts from BGR to RGB
+                    sample[attr] = sample[attr][:, :, ::-1]
                     sample[attr] = np.transpose(sample[attr].copy(), (2, 0, 1))
 
         # Appends `mode` attribute where `{0: FORWARD, 1: STOP, 2: TURN}`.

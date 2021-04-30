@@ -83,9 +83,11 @@ class TensorBoardLogger:
             overhead_features = np.transpose(overhead_features, (0, 2, 3, 1))  # to NHWC
             raw = list()
             _, _, _, C = overhead_features.shape
-            channels = 1 if not C == 3 else list(range(3))[::-1]
-            cmap = "gray" if channels == 1 else "plasma"
-            print(channels, cmap)
+            # C == 3 take all RGB channels
+            # C == 2 or 1 take channel R (below plane)
+            channels = list(range(3)) if C == 3 else 0
+            cmap = "plasma" if C == 3 else "gray"
+            # print(channels, cmap)
             for _, (o_t, p_t, g_t,) in enumerate(
                 zip(
                     overhead_features,

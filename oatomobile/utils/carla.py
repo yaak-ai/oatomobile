@@ -222,6 +222,8 @@ def carla_lidar_measurement_to_ndarray(
     above = points[points[..., 2] > 2.0]
     # Convert point clouds to 2D histograms.
 
+    # RGB -> [below, mid, above]
+    # below = R, mid = G, above = B
     features = [
         splat_points(slice, pixels_per_meter, hist_max_per_pixel, meters_max)
         for slice in [below, mid, above]

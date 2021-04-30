@@ -32,6 +32,16 @@ from oatomobile.torch.networks.mlp import MLP
 from oatomobile.torch.networks.perception import MobileNetV2
 from oatomobile.torch.networks.sequence import AutoregressiveFlow
 
+from torchvision import transforms as torch_transforms
+
+preprocess = torch_transforms.Compose(
+    [
+        torch_transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        ),
+    ]
+)
+
 
 class ImitativeModel(nn.Module):
     """A `PyTorch` implementation of an imitative model."""
@@ -217,6 +227,9 @@ class ImitativeModel(nn.Module):
         traffic_light_state = context.get("traffic_light_state")
 
         # Encodes the visual input.
+        # Normalize cause thats what neede by torch models
+        # normalize to [0, 1] + mean, std normalization
+        visual_features = preprocess(visual_features / 255.0)
         # BCHW -> take first self._in_channels channels
         visual_features = visual_features[:, range(self._in_channels), :, :]
         visual_features = self._encoder(visual_features)
