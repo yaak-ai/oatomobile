@@ -62,7 +62,7 @@ class AutoregressiveFlow(nn.Module):
         # The output head.
         self._locscale = MLP(
             input_size=hidden_size,
-            output_sizes=[32, self._output_shape[1] * 2],
+            output_sizes=[32, self._output_shape[-1] * 2],
             activation_fn=nn.ReLU,
             dropout_rate=None,
             activate_final=False,
@@ -104,13 +104,13 @@ class AutoregressiveFlow(nn.Module):
         """Transforms samples from the base distribution to the data distribution.
 
         Args:
-          x: Samples from the base distribution, with shape `[B, D]`.
+          x: Samples from the base distribution, with shape `[B, T, 2]`.
           z: The contextual parameters of the conditional density estimator, with
             shape `[B, K]`.
 
         Returns:
           y: The sampels from the push-forward distribution,
-            with shape `[B, D]`.
+            with shape `[B, T, 2]`.
           logabsdet: The log absolute determinant of the Jacobian,
             with shape `[B]`.
         """
@@ -129,10 +129,13 @@ class AutoregressiveFlow(nn.Module):
             x_t = x[:, t, :]
 
             # Unrolls the GRU.
+            # input [B, 2] conditioned on [B, K] state representation
+            # output [B, K]
             z = self._decoder(y_tm1, z)
 
             # Predicts the location and scale of the MVN distribution.
             # Lat long + variance in each time step
+            # input [B, K] -> [B, 2 * 2] (GPS mean + std)
             dloc_scale = self._locscale(z)
             dloc = dloc_scale[..., :2]
             scale = F.softplus(dloc_scale[..., 2:]) + 1e-3
@@ -165,13 +168,13 @@ class AutoregressiveFlow(nn.Module):
         """Transforms samples from the data distribution to the base distribution.
 
         Args:
-          y: Samples from the data distribution, with shape `[B, D]`.
+          y: Samples from the data distribution, with shape `[B, T, 2]`.
           z: The contextual parameters of the conditional density estimator, with shape
             `[B, K]`.
 
         Returns:
           x: The sampels from the base distribution,
-            with shape `[B, D]`.
+            with shape `[B, T, 2]`.
           log_prob: The log-likelihood of the samples under
             the base distibution probability, with shape `[B]`.
           logabsdet: The log absolute determinant of the Jacobian,
@@ -192,9 +195,13 @@ class AutoregressiveFlow(nn.Module):
             y_t = y[:, t, :]
 
             # Unrolls the GRU.
+            # input [B, 2] conditioned on [B, K] hidden state representation
+            # output [B, K]
             z = self._decoder(y_tm1, z)
 
             # Predicts the location and scale of the MVN distribution.
+            # Lat long + variance in each time step
+            # input [B, K] -> [B, 2 * 2] (GPS mean + std)
             dloc_scale = self._locscale(z)
             dloc = dloc_scale[..., :2]
             scale = F.softplus(dloc_scale[..., 2:]) + 1e-3
